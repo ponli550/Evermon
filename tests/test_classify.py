@@ -56,6 +56,14 @@ class TestComparison:
         )
         assert classify(e) == "BL_COMPARISON"
 
+    def test_terse_attachment_phrasing_without_the_article(self) -> None:
+        e = email(
+            "Attached SI and draft BL for MCLSINJEA2529384 for checking "
+            "(the BL file will not open). Please advise.",
+            attachments=["attachments/x_SI.pdf", "attachments/x_BL.pdf"],
+        )
+        assert classify(e) == "BL_COMPARISON"
+
     def test_wrong_second_document_is_still_a_comparison_request(self) -> None:
         e = email(
             "Please find attached the SI and the Packing List for MCLSINJEA2508070. "
