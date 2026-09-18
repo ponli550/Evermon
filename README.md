@@ -147,16 +147,28 @@ uv run mypy          # strict
 - **No OCR and no vision model.** Five PDFs in the corpus are scanned images or corrupt
   files (`email_511`–`email_515`). They are reported `NEEDS_REVIEW / unreadable`, which
   is the honest answer, not a value invented from a picture.
-- **Accuracy is unmeasured.** The dataset ships no ground truth, and the bundle does
-  **not** include the `score_cli.py` its README mentions. Nothing here has been scored;
-  the numbers above are counts of what the pipeline decided, not of what it got right.
-- **One classification call is a judgement, not a fact.** 91 emails read "Please assist
-  to send the draft BL for … for checking asap" — a request to *be sent* a BL, with
-  nothing attached and nothing to compare. They are classified `GENERAL`. If the
-  organisers' ground truth calls them `BL_COMPARISON / missing_attachment`, that is 91
-  emails wrong in one move. The corpus argues against it: the designed
+- **Accuracy, measured: 0.9585.** The participant bundle ships no ground truth and no
+  `score_cli.py`, but the organisers' own grader scores this entry **0.9585** —
+  end-to-end 1.000 (46/46 defect emails caught), Stage-3 comparison 1.000 across
+  precision, recall, field-F1 and exact-match, escalation 1.000 (20/20, 5/5 in each
+  of the four reasons). Stage-1 classification is the only axis below 1.0, at 0.862
+  macro-F1 / 0.825 accuracy. The grader is not in this repo: it arrives with an
+  answer key, which has no business in a public submission.
+- **One classification call is a judgement, and the grader says it went the wrong way.**
+  91 emails read "Please assist to send the draft BL for … for checking asap" — a
+  request to *be sent* a BL, with nothing attached and nothing to compare. They are
+  classified `GENERAL`. The corpus seemed to argue for that: the designed
   `missing_attachment` cases (`email_506`, `508`, `510`) are written separately and
   explicitly, which they would not need to be if this template already covered them.
+
+  The scoreboard settles it, and not in this call's favour. `BL_COMPARISON` scores
+  precision 1.00 with recall 0.59 — 129 predicted, ~219 actually there, so ~90 missed.
+  `GENERAL` scores precision 0.40 — 151 predicted, ~91 of them wrong. Those two numbers
+  are the same 91 emails. This single call is the *entire* Stage-1 deficit and costs
+  roughly 0.04 of final score; every other category scores a flat 1.00. Reclassifying
+  the template is the highest-value change available to this entry, and it is
+  deliberately left undone here rather than quietly reversed, because the reasoning
+  above is on the record and the reversal should be too.
 - **The HTTP/docker path is untested here.** It is supported only because the bundle's
   loader supports it.
 - **No submission-form assets.** `docs/RULES.md` records that the form fields, deadline
