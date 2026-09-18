@@ -7,3 +7,18 @@ __pycache__/
 submission.json
 *.egg-info/
 dist/
+sdoc-hackathon-docker/
+
+# watch/: a live-triage demo built on top of dock's own pipeline (not part of
+# the graded batch deliverable in dock/ -- see watch/README.md). Runtime
+# state and the fed-in copies of sample emails are not source.
+watch/state/*.jsonl
+watch/state/*.log
+watch/state/*.pid
+watch/state/board.txt
+watch/live_inbox/inbox/*.json
+watch/live_inbox/attachments/*
+!watch/live_inbox/inbox/.gitkeep
+!watch/live_inbox/attachments/.gitkeep
+!watch/state/.gitkeep
+.DS_Store

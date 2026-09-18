@@ -1,0 +1,12 @@
+# sdoc live-triage panel. Same format as hackager's and pr-watch's:
+# key<TAB>label<TAB>action<TAB>argument. {ctl} stands in for watch-ctl below.
+[global]
+f	feed 20 sample emails (demo -- see watch/README.md)	term-hold	{ctl} feed 20
+F	feed a custom count	input:how many|term-hold|{ctl} feed {input}
+L	daemon log — live tail	log-live	{log}
+s	status	term-hold	{ctl} status
+S	start daemon	term-hold	{ctl} start
+x	stop daemon	term-hold	{ctl} stop
+r	restart daemon	term-hold	{ctl} restart
+R	reset — wipe live_inbox and state for a clean re-demo	term-hold	{ctl} reset
+q	quit	quit
