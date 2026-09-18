@@ -1,0 +1,17 @@
+Averis X Monash Hackathon 2026 | Industry Innovation Challenge
+description: Averis X Monash Hackathon 2026: One industry problem, four days to solve it. Compete for RM 9,000 in cash prizes, collaborate in squads of 2 to 5, and pitch live to senior engineering executives.
+keywords: Averis X Monash Hackathon 2026, Monash University Malaysia, Averis, Hackathon Malaysia, Coding Competition, Student Hackathon, Tech Challenge, Software Engineering, AI Innovation
+og:type: website
+og:url: https://averisxmonashhackathon2026.my/
+og:title: Averis X Monash Hackathon 2026 | Industry Innovation Challenge
+og:description: One industry problem, four days to solve it. Compete for RM 9,000 in prizes. Open to all enrolled Malaysian university students.
+og:image: https://averisxmonashhackathon2026.my/logos/hackathon-logo.png
+og:site_name: Averis X Monash Hackathon 2026
+og:locale: en_MY
+twitter:card: summary_large_image
+twitter:url: https://averisxmonashhackathon2026.my/
+twitter:title: Averis X Monash Hackathon 2026 | Industry Innovation Challenge
+twitter:description: One industry problem, four days to solve it. Compete for RM 9,000 in prizes. Open to all enrolled Malaysian university students.
+twitter:image: https://averisxmonashhackathon2026.my/logos/hackathon-logo.png
+
+Averis X Monash Hackathon 2026 | Industry Innovation Challenge
