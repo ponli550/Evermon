@@ -6,13 +6,14 @@ batch run -- so a live-classified email is decided by the identical logic
 that produced submission.json, not a second copy of it. See watch/README.md
 for what this is and is not.
 """
+
 from __future__ import annotations
 
 import json
 import signal
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -36,7 +37,7 @@ def log(msg: str) -> None:
     # this process's stdout to the log file. Writing to LOG a second time
     # here duplicated every single line -- caught by an actual feed run, not
     # by inspection; the log read twice as long as the event count implied.
-    line = f"{datetime.now(timezone.utc).isoformat(timespec='seconds')}  {msg}"
+    line = f"{datetime.now(UTC).isoformat(timespec='seconds')}  {msg}"
     print(line, flush=True)
 
 
@@ -59,9 +60,13 @@ def render_board() -> None:
             rows.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-    lines = [f"# live triage -- {len(rows)} email(s) seen",
-             f"_watch/daemon.py {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_", "",
-             "| email_id | at | outcome |", "|---|---|---|"]
+    lines = [
+        f"# live triage -- {len(rows)} email(s) seen",
+        f"_watch/daemon.py {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_",
+        "",
+        "| email_id | at | outcome |",
+        "|---|---|---|",
+    ]
     # Every row, newest first. The 200-row cap this replaces silently hid 320
     # of 520 emails after a bulk feed -- the board said "520 email(s) seen"
     # directly above a table that listed 200, which is worse than showing
@@ -86,13 +91,22 @@ def process_new(inbox, done: set[str]) -> int:
             continue  # feeder may still be writing it; catch it next pass
         try:
             entry = process(inbox, email)
-        except Exception as exc:  # noqa: BLE001 -- a bad live record must not kill the daemon
-            entry = {"category": "ERROR", "status": "NEEDS_REVIEW",
-                     "review_reason": f"daemon exception: {exc}", "defect_fields": [],
-                     "has_defect": False}
-        event = {"email_id": email_id, "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                 "entry": entry, "outcome": explain_entry(entry) if entry.get("category") != "ERROR"
-                 else entry["review_reason"]}
+        except Exception as exc:
+            entry = {
+                "category": "ERROR",
+                "status": "NEEDS_REVIEW",
+                "review_reason": f"daemon exception: {exc}",
+                "defect_fields": [],
+                "has_defect": False,
+            }
+        event = {
+            "email_id": email_id,
+            "at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "entry": entry,
+            "outcome": explain_entry(entry)
+            if entry.get("category") != "ERROR"
+            else entry["review_reason"],
+        }
         with EVENTS.open("a") as out:
             out.write(json.dumps(event) + "\n")
         log(f"{email_id}  {event['outcome']}")
@@ -110,7 +124,7 @@ def main() -> int:
     PID_FILE.write_text(str(__import__("os").getpid()))
     running = True
 
-    def stop(signum, frame):  # noqa: ARG001
+    def stop(signum, frame):
         nonlocal running
         running = False
 
@@ -124,7 +138,7 @@ def main() -> int:
     while running:
         try:
             process_new(inbox, done)
-        except Exception as exc:  # noqa: BLE001 -- a bad poll must not kill the daemon
+        except Exception as exc:
             log(f"poll error: {exc}")
         time.sleep(POLL_SECONDS)
     log("stopped")

@@ -96,7 +96,15 @@ def test_non_comparison_emails_carry_a_neutral_verdict(
 def test_the_pipeline_both_escalates_and_decides(
     submission: dict[str, dict[str, object]],
 ) -> None:
-    """A system that never escalates is unreliable; one that always escalates is useless."""
+    """A system that never escalates is unreliable; one that always escalates is useless.
+
+    The escalation count is the load-bearing number here, and it is 20 whether or not
+    the 91 'please send the draft BL' emails are read as comparisons: they are, now,
+    but they raise no document to chase, so they resolve rather than escalate. Letting
+    them escalate scores identically on the weighted metric and drops escalation
+    precision from 1.000 to 0.180 - which is the whole reason this assertion is
+    pinned at 20 and not at "however many the classifier happened to route here".
+    """
     statuses = [e["status"] for e in submission.values() if e["category"] == "BL_COMPARISON"]
     assert statuses.count("NEEDS_REVIEW") == 20
-    assert statuses.count("OK") + statuses.count("MISMATCH") == 109
+    assert statuses.count("OK") + statuses.count("MISMATCH") == 200

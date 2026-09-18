@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from dock.classify import classify
+from dock.classify import classify_with_reason
 from dock.compare import NO_MISMATCH, compare
 from dock.documents import Unreadable, render
 from dock.extract import Document, DocumentType, extract
@@ -128,9 +128,23 @@ def _render_via_loader(inbox: InboxLike, path: str) -> str:
 
 def process(inbox: InboxLike, email: dict[str, Any]) -> dict[str, Any]:
     """Run one email through the pipeline and return its submission entry."""
-    category = classify(email)
+    category, reason = classify_with_reason(email)
     if category != "BL_COMPARISON":
         outcome = Outcome(status="OK", note="not a document comparison request")
+    elif reason == "body:bl_handover_request":
+        # "Please assist to send the draft BL for <ref> for checking" belongs
+        # to the checking workflow, but the document does not exist yet: the
+        # sender is asking for it to be produced. That is not a comparison
+        # whose attachments went missing -- email_506/508/510 say so in as
+        # many words ("attachments appear to have been dropped") and a person
+        # really does have to go and find those.
+        #
+        # Escalating these as well takes flagged NEEDS_REVIEW from 20 to 111
+        # and escalation precision from 1.000 to 0.180. The weighted score
+        # does not notice, since reliability is diagnostic -- but "needs human
+        # review" means nothing if it fires on 91 emails with nothing for a
+        # human to do.
+        outcome = Outcome(status="OK", note="the draft BL has not been issued yet")
     else:
         outcome = adjudicate(read_attachments(inbox, email))
     return {

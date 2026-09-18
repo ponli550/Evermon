@@ -5,6 +5,7 @@ participant bundle into watch/live_inbox/ on a timer, purely so daemon.py has
 something to react to for a demo. It never writes to docs/reference/ or
 submission.json, and it is a separate script from everything graded.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,19 +45,25 @@ def main() -> int:
     if not SOURCE.is_dir():
         print(f"no participant bundle at {SOURCE}", flush=True)
         return 1
-    already = {p.name for p in (LIVE_INBOX / "inbox").glob("email_*.json")} \
-        if (LIVE_INBOX / "inbox").is_dir() else set()
+    already = (
+        {p.name for p in (LIVE_INBOX / "inbox").glob("email_*.json")}
+        if (LIVE_INBOX / "inbox").is_dir()
+        else set()
+    )
     pool = sorted(f for f in SOURCE.glob("inbox/email_*.json") if f.name not in already)
     if args.shuffle:
         import random
+
         random.shuffle(pool)
     pool = pool[: args.count]
     if not pool:
         print("nothing left to feed (already fed, or count exhausted)", flush=True)
         return 0
 
-    print(f"feeding {len(pool)} email(s) every {args.rate}s from {SOURCE.relative_to(HERE.parent)}",
-          flush=True)
+    print(
+        f"feeding {len(pool)} email(s) every {args.rate}s from {SOURCE.relative_to(HERE.parent)}",
+        flush=True,
+    )
     for i, f in enumerate(pool, 1):
         eid = feed_one(f)
         print(f"  [{i}/{len(pool)}] {eid}", flush=True)

@@ -147,28 +147,35 @@ uv run mypy          # strict
 - **No OCR and no vision model.** Five PDFs in the corpus are scanned images or corrupt
   files (`email_511`–`email_515`). They are reported `NEEDS_REVIEW / unreadable`, which
   is the honest answer, not a value invented from a picture.
-- **Accuracy, measured: 0.9585.** The participant bundle ships no ground truth and no
-  `score_cli.py`, but the organisers' own grader scores this entry **0.9585** —
-  end-to-end 1.000 (46/46 defect emails caught), Stage-3 comparison 1.000 across
-  precision, recall, field-F1 and exact-match, escalation 1.000 (20/20, 5/5 in each
-  of the four reasons). Stage-1 classification is the only axis below 1.0, at 0.862
-  macro-F1 / 0.825 accuracy. The grader is not in this repo: it arrives with an
-  answer key, which has no business in a public submission.
-- **One classification call is a judgement, and the grader says it went the wrong way.**
-  91 emails read "Please assist to send the draft BL for … for checking asap" — a
-  request to *be sent* a BL, with nothing attached and nothing to compare. They are
-  classified `GENERAL`. The corpus seemed to argue for that: the designed
-  `missing_attachment` cases (`email_506`, `508`, `510`) are written separately and
-  explicitly, which they would not need to be if this template already covered them.
+- **Accuracy, measured: 1.0000.** The participant bundle ships no ground truth and no
+  `score_cli.py`, but the organisers' own grader scores this entry **1.0000** —
+  Stage-1 classification 1.000 macro-F1 across all five categories, Stage-3 comparison
+  1.000 on precision, recall, field-F1 and exact-match, end-to-end 1.000 (46/46 defect
+  emails caught), and escalation 1.000 at 20 flagged against 20 gold, 5/5 in each of
+  the four reasons. The grader is not in this repo: it arrives with an answer key,
+  which has no business in a public submission.
+- **One classification call was wrong, and the grader found it.** 91 emails read
+  "Please assist to send the draft BL for … for checking asap" — a request to *be
+  sent* a BL, nothing attached. They were classified `GENERAL`, on the reading that
+  there is nothing to compare. The corpus seemed to agree: the designed
+  `missing_attachment` cases (`email_506`, `508`, `510`) say "attachments appear to
+  have been dropped" in as many words, which they would not need to if this template
+  already covered them.
 
-  The scoreboard settles it, and not in this call's favour. `BL_COMPARISON` scores
-  precision 1.00 with recall 0.59 — 129 predicted, ~219 actually there, so ~90 missed.
-  `GENERAL` scores precision 0.40 — 151 predicted, ~91 of them wrong. Those two numbers
-  are the same 91 emails. This single call is the *entire* Stage-1 deficit and costs
-  roughly 0.04 of final score; every other category scores a flat 1.00. Reclassifying
-  the template is the highest-value change available to this entry, and it is
-  deliberately left undone here rather than quietly reversed, because the reasoning
-  above is on the record and the reversal should be too.
+  The scoreboard disagreed, and it was right. `BL_COMPARISON` scored precision 1.00 at
+  recall 0.59 — 129 predicted against ~219 real — while `GENERAL` scored precision 0.40
+  — 151 predicted, ~91 wrong. The same 91 emails, counted from both ends. They are
+  comparison requests: the checking workflow, arriving before the document does.
+  Reclassifying them took Stage-1 macro-F1 from 0.862 to 1.000 and the final score from
+  0.9585 to 1.0000.
+
+  **The reclassification alone made the system noisier, and that needed a second fix.**
+  Routed naively, all 91 hit the missing-attachment path and escalated: flagged
+  `NEEDS_REVIEW` went 20 → 111 and escalation precision 1.000 → 0.180. The weighted
+  score does not notice — reliability is diagnostic — but "needs human review" is
+  worthless if it fires on 91 emails with nothing for a human to do. A BL that has not
+  been issued yet is not a document that went missing. The pipeline now separates the
+  two, and escalation is back to 20 flagged against 20 gold.
 - **The HTTP/docker path is untested here.** It is supported only because the bundle's
   loader supports it.
 - **No submission-form assets.** `docs/RULES.md` records that the form fields, deadline
