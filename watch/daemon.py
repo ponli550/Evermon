@@ -62,7 +62,13 @@ def render_board() -> None:
     lines = [f"# live triage -- {len(rows)} email(s) seen",
              f"_watch/daemon.py {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_", "",
              "| email_id | at | outcome |", "|---|---|---|"]
-    for r in rows[-200:][::-1]:
+    # Every row, newest first. The 200-row cap this replaces silently hid 320
+    # of 520 emails after a bulk feed -- the board said "520 email(s) seen"
+    # directly above a table that listed 200, which is worse than showing
+    # nothing. nvim scrolls a few thousand lines without complaint; if this
+    # ever outgrows that, the fix is a filter, not a truncation that does not
+    # announce itself.
+    for r in reversed(rows):
         lines.append(f"| {r['email_id']} | {r['at'][11:19]} | {r['outcome']} |")
     BOARD.write_text("\n".join(lines) + "\n")
 
