@@ -1,63 +1,60 @@
 ## Dates
 
-Not stated. The landing page metadata mentions "four days to solve it" but gives no actual start/end dates, timezone, or submission deadline. The Drive folder and README bundle contain no dates either.
+not stated. The marketing page says "four days to solve it" but gives no calendar dates, deadlines, or timezone. Treat this as unresolved until confirmed elsewhere — do not assume a submission cutoff.
 
 ## Eligibility
 
-"Open to all enrolled Malaysian university students." Squads of 2 to 5 members (from marketing description: "collaborate in squads of 2 to 5"). No further detail (enrollment proof, one team per person, cross-university teams) is stated.
+"Open to all enrolled Malaysian university students." Squads of 2 to 5 (from marketing meta description: "collaborate in squads of 2 to 5"). No further eligibility detail (verification method, one-team-per-person rule, etc.) is stated.
 
 ## Tracks / what to build
 
-Marketing page: "One industry problem, four days to solve it" — single-track industry innovation challenge, no menu of tracks stated.
+Single problem, not multiple tracks: **shipping document verification**, from email inbox to discrepancy report. The system must, per email:
 
-The actual technical brief comes from the README bundle (SDOC Hackathon), which appears to be the concrete problem statement:
+- **Classify** into one of: `BL_COMPARISON` (or "document-comparison request" in the readthis doc), `SI_REQUEST`/"new SI requests", `INVOICE_QUERY`, `GENERAL`, `SPAM`.
+- **Extract** SI and BL attachment fields (only for comparison requests).
+- **Compare** 7 fields: shipper, consignee, notify party, port of loading, port of discharge, container count, gross weight (kg). Field labels differ across documents (e.g. "Port of Loading" vs "Load Port") — must align by meaning, not header text.
+- **Ask for help**: escalate to human-in-the-loop when it can't decide, "rather than guessing or failing silently."
 
-Build a pipeline that reads an email inbox and, for each email, decides:
-1. **category** — one of `BL_COMPARISON`, `SI_REQUEST`, `INVOICE_QUERY`, `GENERAL`, `SPAM`.
-2. For `BL_COMPARISON` emails, compare the Shipping Instruction (SI) against the draft Bill of Lading (BL) attachments and report:
-   - `status`: `OK` (all 7 fields match), `MISMATCH` (≥1 field differs), or `NEEDS_REVIEW` (undecidable — unreadable/missing/wrong document).
-   - `has_defect` + `defect_fields` when `MISMATCH`.
-   - `review_reason` when `NEEDS_REVIEW` (`wrong_doc_type` | `missing_attachment` | `unreadable` | `missing_value`).
+Baseline: JSON email records, plain-text attachments. **Advanced stage** (explicitly optional, for standing out): PDF/Word attachments with tables/layouts, scanned/image-only PDFs (OCR or vision LLM), messier inputs (varied labels, misleading subjects, missing attachments), and formal `NEEDS_REVIEW` handling with reasons (`wrong_doc_type`, `missing_attachment`, `unreadable`, `missing_value`).
 
-The 7 compared fields: "shipper, consignee, notify_party, port_of_loading, port_of_discharge, container_count, gross_weight_kg." Note: "the SI and BL often *label the same field differently* (`Port of Loading` vs `Load Port`) — align by meaning, not by header text."
-
-**Where pages disagree**: the landing page never names "SDOC" or shipping documents at all — it's pure marketing copy. The README/problem-statement bundle is the only source with an actual buildable spec. Treat the README as governing for what to build; the landing page only governs dates/prizes/eligibility framing (and even those are thin).
+Output shape (only required if using self-eval, but is the de facto contract): one JSON object keyed by `email_id`, matching `sample_submission.json` exactly, every email present. Per README: `category`, and for `BL_COMPARISON`: `status` (`OK`/`MISMATCH`/`NEEDS_REVIEW`), `has_defect`, `defect_fields`, `review_reason`.
 
 ## Hard requirements on the repo and code
 
-- Output must be a `submission.json` that "Match `sample_submission.json` exactly (every email_id present)." (`sample_submission.json` not included in the text supplied — must be in the zip bundles, not fetched here.)
-- Quick-start loader code implies stdlib-only path is expected to work: "or use the loader (stdlib only for the .txt path)."
-- Scoring is either run for you via `score_cli.py submission.json`, or submitted to an HTTP server: `inbox.submit(submission)["final_score"]`. Neither script's contents, nor server URL, nor auth are stated here.
-- No stated requirements on language, license, README format, commit history, or repo structure beyond producing a correct `submission.json`.
+None stated explicitly as submission-repo rules (no license file requirement, no README requirement, no language restriction stated). What's implied by the tooling:
+- Must be runnable against the provided dataset via `loader.py` (`Inbox("data")` or a server URL) — plain stdlib works for the `.txt` path per README.
+- Docker option available (`docker compose up --build`, serves at `localhost:8080`) but "not stated" whether Docker is mandatory for judging — README says no DB/setup needed, implying it's optional convenience.
+- Self-evaluation via `POST /submit` or `score_cli.py submission.json` is optional/dev-only, "not the final assessment."
+- No stated requirement to use LLMs, specific frameworks, or a specific language.
 
 ## Submission form (every field they ask for)
 
-Not stated. Nothing in the supplied pages describes an actual submission form, portal, or fields (team name, members, pitch deck, video link, etc.). Only the technical output (`submission.json`) is specified in the README — that is not the same thing as an official "submission form."
+Not stated. No submission-form page or field list was provided in the fetched content — only the problem statement and dataset docs. Do not fabricate form fields (project name, team members, video link, pitch deck, etc.) — these are unconfirmed.
 
 ## Judging criteria (and any stated obvious-vs-creative guidance)
 
-Only a scoring formula is given, and it's for the technical artifact, not necessarily the whole hackathon judging (there's also "pitch live to senior engineering executives" per marketing copy, with no rubric stated for that pitch):
+Two sources conflict:
+- **Dataset docs (governs for the technical task)**: scoring formula given for self-eval — "Final score = 50% end-to-end (defects caught all the way through) + 30% Stage-1 macro-F1 + 20% Stage-3 defect-F1. `NEEDS_REVIEW` handling is reported as a separate reliability axis." Explicitly caveated: "It is not the final assessment and does not cover every part of a good solution."
+- **Marketing page**: "pitch live to senior engineering executives" — implies a live-pitch judging component with no stated rubric.
 
-> "Final score = 50% end-to-end (defects caught all the way through) + 30% Stage-1 macro-F1 + 20% Stage-3 defect-F1. `NEEDS_REVIEW` handling is reported as a separate reliability axis."
-
-No obvious-vs-creative guidance stated anywhere.
+No overall competition rubric (e.g., weighting of code quality, presentation, business viability) is stated anywhere. Guidance given: "Accuracy means identifying the right requests and the right discrepancies without creating false alarms." Advanced-stage work ("harder, more realistic sample data") is explicitly where "you can stand out" — i.e., basic classify/extract/compare is table stakes, not differentiating.
 
 ## Prizes
 
-"Compete for RM 9,000 in cash prizes." No breakdown by place, no stated prize for pitch performance vs. technical score.
+"Compete for RM 9,000 in cash prizes." No breakdown by place stated.
 
 ## Intellectual property
 
-Not stated. No IP clause appears anywhere in the landing page metadata, the Drive folder listing, or the README bundle.
+Not stated. No IP clause appears anywhere in the fetched pages or documents.
 
 ## What this means for this entry
 
-- The only concrete, buildable spec you have is the SDOC email-classification + SI/BL comparison pipeline from the README — build to that, not to the vague marketing framing.
-- You have no dates: don't assume a deadline; confirm start/end/timezone before planning work hours or all-nighters.
-- You have no submission-form spec: a tool can produce `submission.json`, but the actual hackathon submission (team registration, pitch deck, demo video, any portal upload) is unspecified and must come from the organizers directly — no amount of code fills that gap.
-- The pitch ("pitch live to senior engineering executives") is unscored by any stated rubric and is not something any tool can produce — that's a live human presentation.
-- Correctness bar is explicit and machine-checkable: match `sample_submission.json`'s keys/shape exactly, cover every `email_id`, and optimize the stated weighted F1 formula — that part is fully automatable and testable before the deadline (once you have a deadline).
-- `NEEDS_REVIEW` is scored separately as a "reliability axis" — don't dump everything into `MISMATCH`/`OK` to game the F1; it's checked independently.
-- You don't have `sample_submission.json`, `score_cli.py`, or the server URL in front of you — those exist in the zip bundles (`sdoc-hackathon-bundle.zip`, `sdoc-hackathon-docker.zip`) that were only listed by filename, not fetched/opened. Extract and read them before writing code against assumptions.
-- Team size (2–5) and "enrolled Malaysian university student" eligibility are asserted only in SEO meta description text, not an official rules page — verify against whatever real rules doc exists before treating it as binding.
-- No IP clause was found anywhere — before submitting original work, get this in writing, since "not stated" here means undocumented, not "no claim."
+- The self-eval score formula is real and gameable-in-a-good-way: prioritize Stage-1 classification F1 and end-to-end defect detection over polish — that's 80% of the given metric.
+- Basic capability (JSON/plain-text classify+compare) is the floor everyone will clear; judges are told the advanced stage (PDF/Word, scanned OCR, messy labels, reliability/review flow) is the differentiator — build that if time allows, don't gold-plate the basic path.
+- `NEEDS_REVIEW` / human-in-the-loop is scored as a **separate axis**, not folded into accuracy — a system that never emits `NEEDS_REVIEW` is explicitly penalized on reliability even if accuracy is high. Implement it for real cases, not as a catch-all.
+- No tool (including me) can produce: the live pitch to executives, any competition account/registration, the actual submission form (fields unknown), a demo video if one is required, or team formation/eligibility proof. These need direct action from you/your team.
+- Dates are unknown — get the actual deadline before planning a schedule; "four days" is marketing color, not a locked timeline.
+- IP terms are unstated — don't assume you retain rights or that the organizers claim them; get this in writing before treating the code as reusable post-hackathon.
+- The submission form fields are completely unknown — don't build assets (video, pitch deck) blind; confirm the form first or you risk wasted work on the wrong format.
+- Field-label normalization (SI vs BL wording mismatches) is called out explicitly as a trap — build alignment-by-meaning, not by exact header string, from the start; this will be tested in the sample data.
+- "No mismatch detected" is the exact required output string when all 7 fields match — match it verbatim if you want to pass any string-based grading, though the given scoring is F1-based, not literal-string matching.
