@@ -64,6 +64,29 @@ def test_pdf_container_manifest_rows_are_not_read_as_fields() -> None:
     assert "TOTAL Gross Wt (kgs): 131,322 KG" in text
 
 
+def test_pdf_runs_sharing_one_position_form_one_line() -> None:
+    """A bilingual label is drawn as three runs under a single Tm - label, CJK gloss in a
+    symbol font, then the rest. Reading only the first run loses the value entirely."""
+    text = render(ATT / "email_160_SI.pdf")
+    line = next(ln for ln in text.splitlines() if ln.startswith("TOTAL Gross Weight"))
+    assert line.endswith("(KGS): 23,702 KG")
+
+
+def test_pdf_symbol_font_glyphs_are_marked_undecodable() -> None:
+    """ZapfDingbats carries no text encoding; its bytes are glyph ids, not characters.
+    They are replaced rather than passed off as latin text."""
+    text = render(ATT / "email_160_SI.pdf")
+    assert "�" in text
+    assert "Weightnn(KGS)" not in text
+
+
+def test_xlsx_pipe_separated_cell_becomes_continuation_lines() -> None:
+    """The workbook packs the address into the same cell as the party name."""
+    text = render(ATT / "email_005_BL.xlsx")
+    assert "CONSIGNEE: BALL & DOGGETT AUSTRALIA PTY LTD" in text
+    assert " | " not in text
+
+
 @pytest.mark.parametrize("name", ["email_512_SI.pdf", "email_513_BL.pdf"])
 def test_image_only_pdf_is_unreadable(name: str) -> None:
     """Scanned pages carry no text layer. Without OCR this pipeline must escalate,

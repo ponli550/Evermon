@@ -95,6 +95,10 @@ class TestDocumentType:
     def test_commercial_invoice_is_neither(self) -> None:
         assert extract("COMMERCIAL INVOICE\nSeller: ACME\n").doc_type is DocumentType.OTHER
 
+    def test_bl_instruction_heading_is_a_shipping_instruction(self) -> None:
+        doc = extract("APRIL FINE PAPER TRADING\n\nBL INSTRUCTION: 3658202970\n")
+        assert doc.doc_type is DocumentType.SHIPPING_INSTRUCTION
+
     def test_the_heading_may_not_be_on_the_first_line(self) -> None:
         doc = extract("ASIA PACIFIC PAPERBOARD TRADING PTE LTD\n\nBILL OF LADING: 3154303911\n")
         assert doc.doc_type is DocumentType.BILL_OF_LADING
@@ -126,6 +130,12 @@ class TestAgainstTheRealCorpus:
     def test_all_seven_fields_come_out_of_a_real_xlsx(self) -> None:
         doc = extract(render(ATT / "email_005_BL.xlsx"))
         assert doc.doc_type is DocumentType.BILL_OF_LADING
+        assert not doc.missing_fields
+        assert doc.values["consignee"] == "BALL & DOGGETT AUSTRALIA PTY LTD"
+
+    def test_a_pdf_bilingual_weight_label_still_yields_its_value(self) -> None:
+        doc = extract(render(ATT / "email_160_SI.pdf"))
+        assert doc.values["gross_weight_kg"] == "23,702 KG"
         assert not doc.missing_fields
 
     def test_the_commercial_invoice_posing_as_a_bl_is_detected_by_content(self) -> None:

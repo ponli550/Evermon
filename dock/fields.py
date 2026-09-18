@@ -90,6 +90,9 @@ FIELD_ALIASES: Final[dict[str, tuple[str, ...]]] = {
 DECOY_LABELS: Final[frozenset[str]] = frozenset({"netweight", "netwt", "netweightkgs", "netwtkgs"})
 
 _CJK = re.compile(r"[^\x00-\x7f]+")
+#: A parenthetical carrying a CJK gloss, e.g. "(毛重 KGS)" in "Gross Wt (kgs) (毛重 KGS)".
+#: It restates the label in another language and adds nothing to align on.
+_CJK_PARENTHETICAL = re.compile(r"[(（][^()（）]*[^\x00-\x7f][^()（）]*[)）]")
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 # A quantity qualifier some documents prefix onto the summary line for a field.
 _LABEL_PREFIXES = ("total", "sub")
@@ -97,9 +100,7 @@ _LABEL_PREFIXES = ("total", "sub")
 
 def normalise_label(label: str) -> str:
     """Reduce a header string to a comparable key: no CJK gloss, no punctuation, no case."""
-    stripped = _CJK.sub(" ", label)
-    # Drop a trailing bilingual/abbreviation parenthetical only when it adds no meaning
-    # beyond the words already present, e.g. "Port of Loading (POL)".
+    stripped = _CJK.sub(" ", _CJK_PARENTHETICAL.sub(" ", label))
     key = _NON_ALNUM.sub("", stripped.lower())
     for prefix in _LABEL_PREFIXES:
         if key.startswith(prefix) and len(key) > len(prefix):
@@ -110,7 +111,7 @@ def normalise_label(label: str) -> str:
 
 
 _ALIAS_INDEX: Final[dict[str, str]] = {
-    _NON_ALNUM.sub("", _CJK.sub(" ", alias).lower()): field
+    _NON_ALNUM.sub("", _CJK.sub(" ", _CJK_PARENTHETICAL.sub(" ", alias)).lower()): field
     for field, aliases in FIELD_ALIASES.items()
     for alias in aliases
 }

@@ -78,10 +78,14 @@ def _render_docx(path: Path) -> str:
             lines.extend(paragraphs(child))
         elif child.tag == f"{_W}tbl":
             for row in child.iter(f"{_W}tr"):
-                cells = ["; ".join(paragraphs(tc)) for tc in row.iter(f"{_W}tc")]
-                line = _as_line(cells)
-                if line:
-                    lines.append(line)
+                cells = [paragraphs(tc) for tc in row.iter(f"{_W}tc")]
+                if len(cells) >= 2 and cells[0] and cells[1]:
+                    # The address lines below the party name are continuations, exactly
+                    # as they are in the plain-text documents.
+                    lines.append(f"{cells[0][0]}: {cells[1][0]}")
+                    lines.extend(f"  {extra}" for extra in cells[1][1:])
+                elif cells and cells[0]:
+                    lines.append(cells[0][0])
     return "\n".join(lines)
 
 
