@@ -20,11 +20,18 @@ pretends the organizers provided a live feed.
 
 ## Running it
 
+`watch-ctl` is a Go CLI (`ctl/main.go`) that owns process lifecycle and the
+state files only -- start/stop/status/board/log/feed/reset. Classification
+stays in Python: it launches `daemon.py`, which imports `dock` directly, so
+there is exactly one implementation of the pipeline logic, not two.
+
 ```bash
+cd ctl && go build -o ../watch-ctl . && cd ..   # once; the binary is gitignored
+
 ./watch-ctl start          # daemon in the background, PID in state/daemon.pid
 ./watch-ctl feed 20        # drip 20 sample emails in, ~1 every 2s
 ./watch-ctl board          # current triage board, one line per email seen
-./watch-ctl log             # tail the daemon log
+./watch-ctl log             # tail the daemon log (Ctrl-C to stop watching)
 ./watch-ctl stop
 ```
 

@@ -22,3 +22,5 @@ watch/live_inbox/attachments/*
 !watch/live_inbox/attachments/.gitkeep
 !watch/state/.gitkeep
 .DS_Store
+watch/watch-ctl
+watch/ctl/watch-ctl
