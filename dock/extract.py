@@ -46,7 +46,10 @@ _HEADING_LINES = 8
 
 # Ordered: "BILL OF LADING INSTRUCTION" is the SI, despite containing "BILL OF LADING".
 _TYPE_MARKERS: tuple[tuple[re.Pattern[str], DocumentType], ...] = (
-    (re.compile(r"BILL OF LADING INSTRUCTION|SHIPPING INSTRUCTION"), DocumentType.SHIPPING_INSTRUCTION),
+    (
+        re.compile(r"(?:BILL OF LADING|B/?L|SHIPPING) INSTRUCTION"),
+        DocumentType.SHIPPING_INSTRUCTION,
+    ),
     (re.compile(r"PACKING LIST|CERTIFICATE OF ORIGIN|COMMERCIAL INVOICE"), DocumentType.OTHER),
     (re.compile(r"BILL OF LADING|\bB/L\b"), DocumentType.BILL_OF_LADING),
 )

@@ -38,6 +38,10 @@ _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 _S = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 
+#: Some workbooks pack a party name and its address into one cell, pipe-separated.
+_PACKED_CELL = re.compile(r"\s*\|\s*")
+
+
 def _as_line(cells: list[str]) -> str:
     """Render one table row. Two columns are a label and its value."""
     cells = [c.strip() for c in cells]
@@ -45,9 +49,11 @@ def _as_line(cells: list[str]) -> str:
         cells.pop()
     if len(cells) >= 2 and cells[0]:
         head, *rest = cells
-        value, *extra = [c for c in rest if c]
-        lines = [f"{head}: {value}"] + [f"  {c}" for c in extra]
-        return "\n".join(lines)
+        parts = [p for c in rest if c for p in _PACKED_CELL.split(c) if p]
+        if not parts:
+            return cells[0]
+        value, *extra = parts
+        return "\n".join([f"{head}: {value}", *(f"  {c}" for c in extra)])
     return cells[0] if cells else ""
 
 
@@ -140,11 +146,24 @@ def _shared_strings(archive: zipfile.ZipFile) -> list[str]:
 _PDF_STREAM = re.compile(
     rb"<<(?P<head>(?:[^<>]|<<[^<>]*>>)*)>>\s*stream\r?\n(?P<body>.*?)\s*endstream", re.DOTALL
 )
-# ReportLab positions every run absolutely, which hands us the column for free.
+# ReportLab positions every run absolutely, which hands us the column for free. A run
+# may be followed by further shows with no new Tm - a font switch mid-line - and those
+# continue the same line.
 _PDF_SHOW = re.compile(
-    rb"1 0 0 1 (?P<x>[\d.]+) (?P<y>[\d.]+) Tm\s+\((?P<text>(?:[^()\\]|\\.)*)\)\s*Tj"
+    rb"1 0 0 1 (?P<x>[\d.]+) (?P<y>[\d.]+) Tm"
+    rb"(?P<runs>(?:\s*(?:/(?:\w+) [\d.]+ T[fL]|[\d.]+ TL|\((?:[^()\\]|\\.)*\)\s*Tj))*)"
 )
+_PDF_RUN = re.compile(rb"/(?P<font>\w+) [\d.]+ Tf|\((?P<text>(?:[^()\\]|\\.)*)\)\s*Tj")
 _PDF_ESCAPE = re.compile(rb"\\([()\\])")
+_PDF_FONT = re.compile(
+    rb"<<[^<>]*?/BaseFont\s*/(?P<base>[\w+-]+)(?P<rest>[^<>]*?)/Name\s*/(?P<name>\w+)[^<>]*?>>"
+)
+#: Encodings whose bytes map to characters. Anything else (ZapfDingbats, Symbol, an
+#: embedded CID font) draws glyphs we have no table for.
+_TEXT_ENCODINGS = (b"WinAnsiEncoding", b"MacRomanEncoding", b"StandardEncoding")
+#: Stands in for a glyph run we cannot decode. Non-ASCII on purpose: label alignment
+#: already knows to ignore non-ASCII glosses.
+UNDECODABLE = "�"
 
 #: Left edge of the label column; anything further right is a value or a table cell.
 _LABEL_X = 100.0
@@ -168,14 +187,40 @@ def _pdf_content(raw: bytes) -> bytes:
     return b"\n".join(chunks)
 
 
+def _text_fonts(raw: bytes) -> set[str]:
+    """Names of the fonts in this file whose bytes decode to characters."""
+    return {
+        m.group("name").decode("latin-1")
+        for m in _PDF_FONT.finditer(raw)
+        if any(enc in m.group("rest") for enc in _TEXT_ENCODINGS)
+    }
+
+
+def _pdf_line(runs: bytes, text_fonts: set[str]) -> str:
+    """Join the shows drawn at one position, marking glyphs from non-text fonts."""
+    pieces: list[str] = []
+    decodable = True
+    for match in _PDF_RUN.finditer(runs):
+        font = match.group("font")
+        if font is not None:
+            decodable = font.decode("latin-1") in text_fonts
+        elif decodable:
+            pieces.append(_pdf_text(match.group("text")))
+        elif match.group("text"):
+            pieces.append(UNDECODABLE)
+    return "".join(pieces).strip()
+
+
 def _render_pdf(path: Path) -> str:
     raw = path.read_bytes()
     if not raw.startswith(b"%PDF"):
         raise Unreadable(f"{path.name}: not a PDF")
     content = _pdf_content(raw)
+    text_fonts = _text_fonts(raw)
     runs = [
-        (round(float(m.group("y")), 1), float(m.group("x")), _pdf_text(m.group("text")))
+        (round(float(m.group("y")), 1), float(m.group("x")), line)
         for m in _PDF_SHOW.finditer(content)
+        if (line := _pdf_line(m.group("runs"), text_fonts))
     ]
     if not runs:
         raise Unreadable(f"{path.name}: no text layer (scanned image or damaged file)")
