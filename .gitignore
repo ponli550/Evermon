@@ -22,5 +22,8 @@ watch/live_inbox/attachments/*
 !watch/live_inbox/attachments/.gitkeep
 !watch/state/.gitkeep
 .DS_Store
+# watch/*-ctl, watch/*-popup: compiled Go binaries (go.mod+main.go are the
+# tracked source); watch/state/view.txt: panvim's own render cache.
 watch/watch-ctl
-watch/ctl/watch-ctl
+watch/watch-popup
+watch/state/view.txt

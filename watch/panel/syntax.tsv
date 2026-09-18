@@ -2,6 +2,6 @@
 band	mauve,bold,band	^# live triage.*$
 fail	red,bold	NEEDS_REVIEW\|MISMATCH\|daemon exception
 pass	green,bold	\<OK\>\|No mismatch detected
-dim	grey	^_watch/daemon.py.*_$
+dim	grey	^_watch\/daemon\.py.*_$
 id	teal	email_[0-9]\{3\}
 time	blue	[0-9][0-9]:[0-9][0-9]:[0-9][0-9]
