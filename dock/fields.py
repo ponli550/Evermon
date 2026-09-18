@@ -90,9 +90,14 @@ FIELD_ALIASES: Final[dict[str, tuple[str, ...]]] = {
 DECOY_LABELS: Final[frozenset[str]] = frozenset({"netweight", "netwt", "netweightkgs", "netwtkgs"})
 
 _CJK = re.compile(r"[^\x00-\x7f]+")
-#: A parenthetical carrying a CJK gloss, e.g. "(毛重 KGS)" in "Gross Wt (kgs) (毛重 KGS)".
-#: It restates the label in another language and adds nothing to align on.
-_CJK_PARENTHETICAL = re.compile(r"[(（][^()（）]*[^\x00-\x7f][^()（）]*[)）]")
+#: A parenthetical carrying a CJK gloss - the "(毛重 KGS)" of "Gross Wt (kgs) (毛重 KGS)".
+#: It restates the label in another language and adds nothing to align on. Both ASCII and
+#: fullwidth brackets count, because a CJK keyboard produces the fullwidth pair.
+_BRACKETS = "()" + chr(0xFF08) + chr(0xFF09)
+_NOT_BRACKET = f"[^{_BRACKETS}]*"
+_CJK_PARENTHETICAL = re.compile(
+    f"[({chr(0xFF08)}]{_NOT_BRACKET}[^\\x00-\\x7f]{_NOT_BRACKET}[){chr(0xFF09)}]"
+)
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 # A quantity qualifier some documents prefix onto the summary line for a field.
 _LABEL_PREFIXES = ("total", "sub")

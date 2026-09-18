@@ -102,24 +102,33 @@ def test_both_files_unreadable() -> None:
 
 
 def test_a_field_left_blank_by_the_customer() -> None:
-    outcome = adjudicate([readable("attachments/e_SI.txt", DocumentType.SHIPPING_INSTRUCTION,
-                                   gross_weight_kg=""), BL])
+    outcome = adjudicate(
+        [
+            readable("attachments/e_SI.txt", DocumentType.SHIPPING_INSTRUCTION, gross_weight_kg=""),
+            BL,
+        ]
+    )
     assert outcome.status == "NEEDS_REVIEW"
     assert outcome.review_reason == "missing_value"
     assert outcome.has_defect is False
 
 
 def test_a_blank_field_is_never_reported_as_a_mismatch() -> None:
-    outcome = adjudicate([readable("attachments/e_SI.txt", DocumentType.SHIPPING_INSTRUCTION,
-                                   consignee=""), BL])
+    outcome = adjudicate(
+        [readable("attachments/e_SI.txt", DocumentType.SHIPPING_INSTRUCTION, consignee=""), BL]
+    )
     assert outcome.defect_fields == []
 
 
 def test_unreadable_outranks_missing_value() -> None:
     """The unreadable file could hold anything; reporting a blank field first would
     understate the problem."""
-    outcome = adjudicate([readable("attachments/e_SI.txt", DocumentType.SHIPPING_INSTRUCTION,
-                                   consignee=""), broken("attachments/e_BL.pdf")])
+    outcome = adjudicate(
+        [
+            readable("attachments/e_SI.txt", DocumentType.SHIPPING_INSTRUCTION, consignee=""),
+            broken("attachments/e_BL.pdf"),
+        ]
+    )
     assert outcome.review_reason == "unreadable"
 
 
@@ -129,8 +138,14 @@ def test_a_decidable_pair_does_not_escalate() -> None:
 
 
 def test_a_real_defect_is_reported_as_a_mismatch_not_escalated() -> None:
-    outcome = adjudicate([SI, readable("attachments/e_BL.txt", DocumentType.BILL_OF_LADING,
-                                       consignee="CLIFFORD PAPER INC")])
+    outcome = adjudicate(
+        [
+            SI,
+            readable(
+                "attachments/e_BL.txt", DocumentType.BILL_OF_LADING, consignee="CLIFFORD PAPER INC"
+            ),
+        ]
+    )
     assert outcome.status == "MISMATCH"
     assert outcome.defect_fields == ["consignee"]
     assert outcome.review_reason is None

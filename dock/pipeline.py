@@ -63,12 +63,12 @@ def adjudicate(attachments: list[Attachment]) -> Outcome:
         reasons.add("unreadable")
         details["unreadable"] = "; ".join(str(a.error) for a in unreadable)
 
-    readable = [a for a in attachments if a.document is not None]
-    si = next((a.document for a in readable if a.document.doc_type is DocumentType.SHIPPING_INSTRUCTION), None)  # type: ignore[union-attr]
-    bl = next((a.document for a in readable if a.document.doc_type is DocumentType.BILL_OF_LADING), None)  # type: ignore[union-attr]
+    readable = [a.document for a in attachments if a.document is not None]
+    si = next((d for d in readable if d.doc_type is DocumentType.SHIPPING_INSTRUCTION), None)
+    bl = next((d for d in readable if d.doc_type is DocumentType.BILL_OF_LADING), None)
 
     if not unreadable and len(attachments) >= _REQUIRED_DOCUMENTS and (si is None or bl is None):
-        seen = ", ".join(sorted({a.document.doc_type.value for a in readable}))  # type: ignore[union-attr]
+        seen = ", ".join(sorted({d.doc_type.value for d in readable}))
         reasons.add("wrong_doc_type")
         details["wrong_doc_type"] = f"expected an SI and a draft BL, got: {seen or 'nothing'}"
 
@@ -94,7 +94,7 @@ def adjudicate(attachments: list[Attachment]) -> Outcome:
     )
 
 
-def read_attachments(inbox: InboxLike, email: dict[str, Any], workdir: Any = None) -> list[Attachment]:
+def read_attachments(inbox: InboxLike, email: dict[str, Any]) -> list[Attachment]:
     """Pull each attachment through the loader and render it to canonical text."""
     out: list[Attachment] = []
     for path in email.get("attachments") or []:
@@ -142,7 +142,7 @@ def process(inbox: InboxLike, email: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def explain_entry(email: dict[str, Any], entry: dict[str, Any]) -> str:
+def explain_entry(entry: dict[str, Any]) -> str:
     """One line of human-readable reasoning, for --explain."""
     if entry["category"] != "BL_COMPARISON":
         return f"{entry['category']}"

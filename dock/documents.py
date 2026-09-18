@@ -66,7 +66,7 @@ def _render_docx(path: Path) -> str:
 
     def paragraphs(node: ElementTree.Element) -> list[str]:
         """One entry per visual line: Word breaks an address with <w:br/>, not <w:p>."""
-        out = []
+        out: list[str] = []
         for para in node.iter(f"{_W}p"):
             pieces: list[str] = []
             for elem in para.iter():
@@ -156,7 +156,7 @@ _PDF_SHOW = re.compile(
 _PDF_RUN = re.compile(rb"/(?P<font>\w+) [\d.]+ Tf|\((?P<text>(?:[^()\\]|\\.)*)\)\s*Tj")
 _PDF_ESCAPE = re.compile(rb"\\([()\\])")
 _PDF_FONT = re.compile(
-    rb"<<[^<>]*?/BaseFont\s*/(?P<base>[\w+-]+)(?P<rest>[^<>]*?)/Name\s*/(?P<name>\w+)[^<>]*?>>"
+    rb"<<[^<>]*?/BaseFont\s*/[\w+-]+(?P<rest>[^<>]*?)/Name\s*/(?P<name>\w+)[^<>]*?>>"
 )
 #: Encodings whose bytes map to characters. Anything else (ZapfDingbats, Symbol, an
 #: embedded CID font) draws glyphs we have no table for.

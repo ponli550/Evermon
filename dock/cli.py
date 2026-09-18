@@ -41,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         entry = process(inbox, email)
         submission[email_id] = entry
         if args.explain:
-            print(f"{email_id}  {explain_entry(email, entry)}")
+            print(f"{email_id}  {explain_entry(entry)}")
 
     out = Path(args.out)
     if out.parent != Path():
@@ -57,7 +57,8 @@ def main(argv: list[str] | None = None) -> int:
         file=sys.stderr,
     )
     print(
-        "  comparisons: " + "  ".join(f"{name}={count}" for name, count in sorted(statuses.items())),
+        "  comparisons: "
+        + "  ".join(f"{name}={count}" for name, count in sorted(statuses.items())),
         file=sys.stderr,
     )
     return 0

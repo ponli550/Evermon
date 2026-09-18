@@ -51,7 +51,10 @@ class _FallbackInbox:
         return [json.loads(p.read_text()) for p in sorted(inbox_dir.glob("email_*.json"))]
 
     def get(self, email_id: str) -> dict[str, Any]:
-        return json.loads((self.source / "inbox" / f"{email_id}.json").read_text())
+        record: dict[str, Any] = json.loads(
+            (self.source / "inbox" / f"{email_id}.json").read_text()
+        )
+        return record
 
     def read_bytes(self, att_path: str) -> bytes:
         return (self.source / att_path).read_bytes()

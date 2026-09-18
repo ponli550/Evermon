@@ -22,7 +22,8 @@ def submission(tmp_path_factory: pytest.TempPathFactory) -> dict[str, dict[str, 
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    return json.loads(out.read_text())
+    parsed: dict[str, dict[str, object]] = json.loads(out.read_text())
+    return parsed
 
 
 def test_the_provided_loader_is_what_reads_the_inbox() -> None:

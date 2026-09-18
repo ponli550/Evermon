@@ -64,7 +64,11 @@ def test_labels_differing_while_values_agree_is_not_a_defect() -> None:
 def test_formatting_differences_are_not_defects() -> None:
     result = compare(
         si(),
-        bl(gross_weight_kg="21577", container_count="1 X 40'HC", shipper="April Far East (M) Sdn Bhd"),
+        bl(
+            gross_weight_kg="21577",
+            container_count="1 X 40'HC",
+            shipper="April Far East (M) Sdn Bhd",
+        ),
     )
     assert result.status == "OK"
     assert result.summary == "No mismatch detected"
