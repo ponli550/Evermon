@@ -49,7 +49,7 @@ _SPAM: Final[tuple[Rule, ...]] = _rules(
 #: An explicit request to check one document against the other. This is the only
 #: category whose work the pipeline actually performs.
 _COMPARISON: Final[tuple[Rule, ...]] = _rules(
-    ("si_and_bl_attached", r"attached (?:are|is)? ?the si and (?:the )?draft b/?l"),
+    ("si_and_bl_attached", r"attached\b(?: are| is)?(?: the)? si and (?:the )?draft b/?l"),
     ("si_and_bl_enclosed", r"shipping instruction and the draft bill of lading"),
     ("check_bl_against_si", r"check the draft b/?l against the si"),
     ("compare", r"(?:please |pls )?compare the si and (?:the )?draft b/?l"),
