@@ -35,6 +35,11 @@ cd ctl && go build -o ../watch-ctl . && cd ..   # once; the binary is gitignored
 ./watch-ctl stop
 ```
 
+`start` is a no-op on an already-running daemon, so editing `daemon.py` and
+running `start` leaves you on the old code. `start` and `status` now warn
+when the running process predates the last edit; `restart` is what actually
+picks a change up.
+
 ## The panel
 
 `panel/keys.tsv` + `panel/syntax.tsv` are a panvim view, same mechanism

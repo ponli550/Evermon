@@ -147,12 +147,45 @@ func runningPID() int {
 	return pid
 }
 
+// staleCode reports whether the running daemon predates the last edit to
+// daemon.py. The pidfile's mtime is the daemon's start time (daemon.py
+// writes it once, at startup), which beats parsing `ps -o lstart`.
+//
+// This exists because `start` is a no-op on an already-running daemon: edit
+// daemon.py, run start, and you are silently still on the old code. That
+// cost a real debugging cycle -- a board fix looked broken for several
+// minutes because the process under test predated the fix by 86 seconds.
+func staleCode() (time.Duration, bool) {
+	pidInfo, err := os.Stat(pidFile())
+	if err != nil {
+		return 0, false
+	}
+	srcInfo, err := os.Stat(filepath.Join(here, "daemon.py"))
+	if err != nil {
+		return 0, false
+	}
+	if srcInfo.ModTime().After(pidInfo.ModTime()) {
+		return srcInfo.ModTime().Sub(pidInfo.ModTime()), true
+	}
+	return 0, false
+}
+
+func warnIfStale() {
+	if age, stale := staleCode(); stale {
+		fmt.Fprintf(os.Stderr,
+			"warning: daemon.py was edited %s after this daemon started -- it is running the OLD code.\n"+
+				"         `watch-ctl restart` to pick the change up (`start` alone will not).\n",
+			age.Round(time.Second))
+	}
+}
+
 func start() error {
 	if err := os.MkdirAll(stateDir(), 0o755); err != nil {
 		return err
 	}
 	if pid := runningPID(); pid != 0 {
 		fmt.Printf("already running (pid %d)\n", pid)
+		warnIfStale()
 		return nil
 	}
 	lf, err := os.OpenFile(logFile(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
@@ -212,6 +245,7 @@ func status() error {
 	n := countLines(eventsFile())
 	if pid := runningPID(); pid != 0 {
 		fmt.Printf("running (pid %d) -- %d email(s) triaged\n", pid, n)
+		warnIfStale()
 	} else {
 		fmt.Printf("stopped -- %d email(s) triaged\n", n)
 	}
