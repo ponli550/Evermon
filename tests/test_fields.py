@@ -54,6 +54,8 @@ def test_cjk_annotated_labels_align() -> None:
     assert canonical_field("Gross Weight毛重(KGS)") == "gross_weight_kg"
     assert canonical_field("Shipper (Principal or Seller) (发货人)") == "shipper"
     assert canonical_field("PORT OF LOADING (装货港)") == "port_of_loading"
+    assert canonical_field("Gross Wt (kgs) (毛重 KGS)") == "gross_weight_kg"
+    assert canonical_field("Notify (通知人)") == "notify_party"
     assert canonical_field("B/L NO.(提单号)") is None
 
 
