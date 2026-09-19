@@ -6,3 +6,6 @@ pass	green,bold	\<OK\>\|No mismatch detected
 dim	grey	^_watch\/daemon\.py.*_$
 id	teal	email_[0-9]\{3\}
 time	blue	[0-9][0-9]:[0-9][0-9]:[0-9][0-9]
+seg-ok	green	█\+
+seg-mismatch	red	▓\+
+seg-review	peach	░\+
