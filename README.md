@@ -96,8 +96,8 @@ per `email_id`, and prints a summary to stderr:
 
 ```
 520 emails -> submission.json
-  BL_COMPARISON=129  GENERAL=151  INVOICE_QUERY=75  SI_REQUEST=125  SPAM=40
-  comparisons: MISMATCH=46  NEEDS_REVIEW=20  OK=63
+  BL_COMPARISON=220  GENERAL=60  INVOICE_QUERY=75  SI_REQUEST=125  SPAM=40
+  comparisons: MISMATCH=46  NEEDS_REVIEW=20  OK=154
 ```
 
 Add `--explain` to see the decision for every email as it is made:
@@ -135,9 +135,11 @@ uv run mypy          # strict
 - All four attachment formats in the corpus are parsed with the standard library:
   plain text, `.xlsx` (zipped XML), `.docx` (zipped XML, including `<w:br/>` line breaks
   inside a cell), and text-layer `.pdf` (ASCII85 + Flate, with runs positioned by `Tm`).
-- All 129 comparison emails reach a definite outcome: 63 `OK`, 46 `MISMATCH`, 20
+- All 220 comparison emails reach a definite outcome: 154 `OK`, 46 `MISMATCH`, 20
   `NEEDS_REVIEW`. The corpus contains exactly 20 designed escalation cases (five of each
-  cause, `email_501`–`email_520`) and each lands on the reason its own body describes.
+  cause, `email_501`–`email_520`) and each lands on the reason its own body describes —
+  and *only* those twenty escalate. The 91 "please send the draft BL" requests are
+  comparison work too, but nothing about them needs a person, so they resolve.
 - Cross-format pairs work: `email_055` is an `.xlsx` SI against a `.docx` BL and compares
   clean.
 - `"No mismatch detected"` is emitted verbatim when all seven fields agree.
@@ -186,7 +188,15 @@ uv run mypy          # strict
 ## Layout
 
 ```
-dock/       the pipeline (stdlib only)
+dock/       the pipeline (stdlib only)          <- this is the submission
 tests/      129 tests; no network, no LLM, deterministic
 docs/       the brief, the distilled rules, and the organisers' bundle verbatim
+watch/      a live-triage demo built on dock, NOT part of the graded pipeline
 ```
+
+`watch/` exists because a batch CLI is hard to show to a room. It watches a
+folder and triages emails as they land, through `dock.pipeline.process()` —
+the same function `dock/cli.py` calls, imported as a library, so there is one
+implementation and not two. Nothing in `dock/` imports it, and removing the
+directory would not change `submission.json` by a byte. Its own README says
+what is real about it and what is staged for a demo.
