@@ -60,12 +60,36 @@ def render_board() -> None:
             rows.append(json.loads(line))
         except json.JSONDecodeError:
             continue
+    header = ("email_id", "at", "outcome")
+    # Newest first. "at" is stored in UTC isoformat but shown in local time,
+    # so the event column reads the same clock as the `_watch/daemon.py`
+    # footer above it -- a board that mixed 08:44 (stored) and 16:44 (local)
+    # looked like the triage ran six hours in the past.
+    body = [
+        [
+            r["email_id"],
+            datetime.fromisoformat(r["at"]).astimezone().strftime("%Y-%m-%d %H:%M:%S"),
+            r["outcome"],
+        ]
+        for r in reversed(rows)
+    ]
+    widths = [len(h) for h in header]
+    if body:
+        for i in range(len(header)):
+            widths[i] = max(widths[i], *(len(r[i]) for r in body))
+
+    def row(cells: list[str], dash: str = "") -> str:
+        fill = [
+            ("-" * max(w, 3) if dash else c.ljust(w)) for c, w in zip(cells, widths, strict=True)
+        ]
+        return "| " + " | ".join(fill) + " |"
+
     lines = [
         f"# live triage -- {len(rows)} email(s) seen",
         f"_watch/daemon.py {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_",
         "",
-        "| email_id | at | outcome |",
-        "|---|---|---|",
+        row(list(header)),
+        row(list(header), dash="-"),
     ]
     # Every row, newest first. The 200-row cap this replaces silently hid 320
     # of 520 emails after a bulk feed -- the board said "520 email(s) seen"
@@ -73,8 +97,7 @@ def render_board() -> None:
     # nothing. nvim scrolls a few thousand lines without complaint; if this
     # ever outgrows that, the fix is a filter, not a truncation that does not
     # announce itself.
-    for r in reversed(rows):
-        lines.append(f"| {r['email_id']} | {r['at'][11:19]} | {r['outcome']} |")
+    lines += [row(c) for c in body]
     BOARD.write_text("\n".join(lines) + "\n")
 
 
