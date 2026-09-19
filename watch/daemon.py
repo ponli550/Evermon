@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Watch watch/live_inbox/ for new email records and triage them as they land.
 
-Reuses dock.pipeline.process() -- the same function dock/cli.py calls for the
-batch run -- so a live-classified email is decided by the identical logic
-that produced submission.json, not a second copy of it. See watch/README.md
-for what this is and is not.
+Reuses dock.pipeline.decide() -- the same decision dock/cli.py's process()
+wraps for the batch run -- so a live-classified email is decided by the
+identical logic that produced submission.json, not a second copy of it.
+decide() additionally exposes the per-field SI/BL evidence dock/cli.py
+doesn't need, for the board's "why flagged" detail. See watch/README.md for
+what this is and is not.
 """
 
 from __future__ import annotations
@@ -20,7 +22,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(ROOT))  # so `import dock` works run from anywhere
 
-from dock.pipeline import explain_entry, process  # noqa: E402
+from dock.classify import CATEGORIES  # noqa: E402
+from dock.pipeline import decide, explain_entry  # noqa: E402
 from dock.sources import bundle_inbox  # noqa: E402
 
 LIVE_INBOX = HERE / "live_inbox"
@@ -30,6 +33,10 @@ BOARD = STATE / "board.txt"
 LOG = STATE / "daemon.log"
 PID_FILE = STATE / "daemon.pid"
 POLL_SECONDS = 1.0
+
+#: outcomes shown in the dashboard's proportion bar, in a fixed order so it
+#: doesn't reshuffle its segments as new outcomes show up.
+_OUTCOMES = ("OK", "MISMATCH", "NEEDS_REVIEW")
 
 
 def log(msg: str) -> None:
@@ -53,6 +60,69 @@ def seen_ids() -> set[str]:
     return out
 
 
+def _bar_chart(counts: dict[str, int], order: tuple[str, ...], width: int = 24) -> list[str]:
+    """One horizontal bar per key in `order`, scaled to the largest count."""
+    peak = max((counts.get(k, 0) for k in order), default=0) or 1
+    label_w = max(len(k) for k in order)
+    lines = []
+    for k in order:
+        n = counts.get(k, 0)
+        bar = "█" * round(width * n / peak)
+        lines.append(f"  {k.ljust(label_w)}  {bar} {n}")
+    return lines
+
+
+#: one fill character per outcome, used by the proportion bar and its legend.
+_OUTCOME_FILL = {"OK": "█", "MISMATCH": "▓", "NEEDS_REVIEW": "░"}
+
+
+def _proportion_bar(counts: dict[str, int], width: int = 30) -> list[str]:
+    """A single stacked bar, OK|MISMATCH|NEEDS_REVIEW by share of total -- the
+    pie-chart equivalent that a monospace buffer can actually render clean."""
+    total = sum(counts.get(k, 0) for k in _OUTCOMES)
+    if total == 0:
+        return ["  (no data yet)"]
+    segments = []
+    used = 0
+    for i, k in enumerate(_OUTCOMES):
+        seg = width - used if i == len(_OUTCOMES) - 1 else round(width * counts.get(k, 0) / total)
+        segments.append(_OUTCOME_FILL[k] * seg)
+        used += seg
+
+    def _slice(k: str) -> str:
+        n = counts.get(k, 0)
+        return f"{_OUTCOME_FILL[k]} {k} {n} ({n * 100 // total}%)"
+
+    return [f"  [{''.join(segments)}]", "  " + "  ".join(_slice(k) for k in _OUTCOMES)]
+
+
+def _side_by_side(left: list[str], right: list[str], gap: str = "   │  ") -> list[str]:
+    left_w = max((len(line) for line in left), default=0)
+    height = max(len(left), len(right))
+    left = left + [""] * (height - len(left))
+    right = right + [""] * (height - len(right))
+    return [f"{lft.ljust(left_w)}{gap}{rgt}".rstrip() for lft, rgt in zip(left, right, strict=True)]
+
+
+def _flagged_card(row: dict) -> list[str]:
+    """Side-by-side SI|BL detail for one flagged (MISMATCH/NEEDS_REVIEW) email."""
+    entry = row["entry"]
+    lines = [f">> {row['email_id']}  {row['outcome']}"]
+    note = row.get("note") or ""
+    if note:
+        lines.append(f"   why: {note}")
+    compared = row.get("compared") or {}
+    if compared:
+        defects = set(entry.get("defect_fields") or [])
+        field_w = max(len(f) for f in compared)
+        val_w = max((len(v) for pair in compared.values() for v in pair), default=3)
+        lines.append(f"   {'field'.ljust(field_w)}  {'SI'.ljust(val_w)}  BL")
+        for f, (si_val, bl_val) in compared.items():
+            flag = "  <-- MISMATCH" if f in defects else ""
+            lines.append(f"   {f.ljust(field_w)}  {si_val.ljust(val_w)}  {bl_val}{flag}")
+    return lines
+
+
 def render_board() -> None:
     rows = []
     for line in EVENTS.read_text().splitlines() if EVENTS.is_file() else []:
@@ -60,6 +130,40 @@ def render_board() -> None:
             rows.append(json.loads(line))
         except json.JSONDecodeError:
             continue
+
+    category_counts: dict[str, int] = {}
+    outcome_counts: dict[str, int] = {}
+    for r in rows:
+        cat = r["entry"].get("category", "ERROR")
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+        status = r["entry"].get("status")
+        if status in _OUTCOMES:
+            outcome_counts[status] = outcome_counts.get(status, 0) + 1
+
+    flagged = [
+        r for r in reversed(rows) if r["entry"].get("status") in ("MISMATCH", "NEEDS_REVIEW")
+    ]
+
+    left = ["## categories", "", *_bar_chart(category_counts, CATEGORIES)]
+    right = ["## comparison outcomes", "", *_proportion_bar(outcome_counts)]
+
+    dashboard: list[str] = [
+        "# sdoc live triage -- proactive board",
+        f"_watch/daemon.py {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_",
+        "",
+        *_side_by_side(left, right),
+        "",
+        f"## flagged -- {len(flagged)} needing attention"
+        f" (most recent {min(len(flagged), 12)} shown)",
+    ]
+    if not flagged:
+        dashboard.append("  none yet")
+    for r in flagged[:12]:
+        dashboard += _flagged_card(r)
+    dashboard.append("")
+    dashboard.append(f"## full history -- {len(rows)} email(s) seen")
+    dashboard.append("")
+
     header = ("email_id", "at", "outcome")
     # Newest first. "at" is stored in UTC isoformat but shown in local time,
     # so the event column reads the same clock as the `_watch/daemon.py`
@@ -85,9 +189,6 @@ def render_board() -> None:
         return "| " + " | ".join(fill) + " |"
 
     lines = [
-        f"# live triage -- {len(rows)} email(s) seen",
-        f"_watch/daemon.py {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_",
-        "",
         row(list(header)),
         row(list(header), dash="-"),
     ]
@@ -98,7 +199,7 @@ def render_board() -> None:
     # ever outgrows that, the fix is a filter, not a truncation that does not
     # announce itself.
     lines += [row(c) for c in body]
-    BOARD.write_text("\n".join(lines) + "\n")
+    BOARD.write_text("\n".join(dashboard + lines) + "\n")
 
 
 def process_new(inbox, done: set[str]) -> int:
@@ -112,8 +213,19 @@ def process_new(inbox, done: set[str]) -> int:
             email = json.loads(f.read_text())
         except json.JSONDecodeError:
             continue  # feeder may still be writing it; catch it next pass
+        note = ""
+        compared: dict[str, tuple[str, str]] = {}
         try:
-            entry = process(inbox, email)
+            decision = decide(inbox, email)
+            entry = {
+                "category": decision.category,
+                "status": decision.outcome.status,
+                "review_reason": decision.outcome.review_reason,
+                "defect_fields": decision.outcome.defect_fields,
+                "has_defect": decision.outcome.has_defect,
+            }
+            note = decision.outcome.note
+            compared = decision.outcome.compared
         except Exception as exc:
             entry = {
                 "category": "ERROR",
@@ -126,6 +238,8 @@ def process_new(inbox, done: set[str]) -> int:
             "email_id": email_id,
             "at": datetime.now(UTC).isoformat(timespec="seconds"),
             "entry": entry,
+            "note": note,
+            "compared": compared,
             "outcome": explain_entry(entry)
             if entry.get("category") != "ERROR"
             else entry["review_reason"],

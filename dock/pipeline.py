@@ -41,6 +41,9 @@ class Outcome:
     review_reason: str | None = None
     #: Free text for a human reader; not part of the submission format.
     note: str = ""
+    #: field -> (SI value, BL value) as compared, for every field both documents had.
+    #: Populated only when a compare actually ran; not part of the submission format.
+    compared: dict[str, tuple[str, str]] = field(default_factory=dict)
 
 
 def _needs_review(reason: str, detail: str = "") -> Outcome:
@@ -91,6 +94,7 @@ def adjudicate(attachments: list[Attachment]) -> Outcome:
         has_defect=result.has_defect,
         defect_fields=result.defect_fields,
         note=result.summary,
+        compared=result.compared,
     )
 
 
@@ -126,8 +130,14 @@ def _render_via_loader(inbox: InboxLike, path: str) -> str:
         temporary.unlink(missing_ok=True)
 
 
-def process(inbox: InboxLike, email: dict[str, Any]) -> dict[str, Any]:
-    """Run one email through the pipeline and return its submission entry."""
+@dataclass(frozen=True)
+class Decision:
+    category: str
+    outcome: Outcome
+
+
+def decide(inbox: InboxLike, email: dict[str, Any]) -> Decision:
+    """Run one email through the pipeline and return the full decision, evidence included."""
     category, reason = classify_with_reason(email)
     if category != "BL_COMPARISON":
         outcome = Outcome(status="OK", note="not a document comparison request")
@@ -147,8 +157,15 @@ def process(inbox: InboxLike, email: dict[str, Any]) -> dict[str, Any]:
         outcome = Outcome(status="OK", note="the draft BL has not been issued yet")
     else:
         outcome = adjudicate(read_attachments(inbox, email))
+    return Decision(category, outcome)
+
+
+def process(inbox: InboxLike, email: dict[str, Any]) -> dict[str, Any]:
+    """Run one email through the pipeline and return its submission entry."""
+    decision = decide(inbox, email)
+    outcome = decision.outcome
     return {
-        "category": category,
+        "category": decision.category,
         "status": outcome.status,
         "review_reason": outcome.review_reason,
         "defect_fields": outcome.defect_fields,

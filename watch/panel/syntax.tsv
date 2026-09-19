@@ -1,6 +1,7 @@
 # sdoc live-triage panel colouring. group<TAB>colour[,bold][,band]<TAB>vim-regex
-band	mauve,bold,band	^# live triage.*$
-fail	red,bold	NEEDS_REVIEW\|MISMATCH\|daemon exception
+band	mauve,bold,band	^# .*live triage.*$
+section	mauve,bold	^## .*$
+fail	red,bold	NEEDS_REVIEW\|MISMATCH\|daemon exception\|<-- MISMATCH\|^>> .*$
 pass	green,bold	\<OK\>\|No mismatch detected
 dim	grey	^_watch\/daemon\.py.*_$
 id	teal	email_[0-9]\{3\}
