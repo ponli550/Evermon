@@ -2,7 +2,7 @@
 # key<TAB>label<TAB>action<TAB>argument. {ctl} stands in for watch-ctl below.
 [row]
 e	edit & resend flagged email -- opens attachments in $EDITOR, sends a NEW synthetic email (never touches the original or real data)	term-side	{ctl} resend {row}
-a	AI fix -- claude cross-checks blank fields against the other document, resends only what it can prove, never invents a value	term-hold	{ctl} aifix {row}
+a	AI fix -- claude cross-checks blank fields against the other document, resends only what it can prove, never invents a value	term-float-hold	{ctl} aifix {row}
 d	delete this row IF it's a resend.py correction (refuses on real dataset emails)	term-hold	{ctl} delete {row}
 
 [global]
@@ -10,6 +10,7 @@ f	feed 20 sample emails (demo -- see watch/README.md)	term-hold	{ctl} feed 20
 F	feed a custom count	input:how many? |term-hold|{ctl} feed {input}
 t	daemon log — live tail	log-live	{log}
 n	escalation inbox -- every email a human needs to look at	term-hold	{ctl} inbox
+l	AI fix log -- every prompt, response, cost and verdict, raw JSONL	log-live	{ailog}
 s	status	term-hold	{ctl} status
 S	start daemon	term-hold	{ctl} start
 x	stop daemon	term-hold	{ctl} stop

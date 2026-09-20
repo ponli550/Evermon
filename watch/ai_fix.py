@@ -40,6 +40,22 @@ from dock.fields import canonical_field  # noqa: E402
 
 LIVE_INBOX = HERE / "live_inbox"
 BUNDLE = ROOT / "docs" / "reference" / "sdoc-hackathon-bundle"
+STATE = HERE / "state"
+#: Full audit trail of every ai_fix.py call: the prompt sent, the raw
+#: response, and the verdict -- so "what did the AI actually do" is never
+#: just the summary line term-hold happened to still be showing.
+AI_LOG = STATE / "ai_fix.log"
+
+
+def _log(entry: dict) -> None:
+    STATE.mkdir(exist_ok=True)
+    with AI_LOG.open("a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def _say(msg: str) -> None:
+    print(msg, flush=True)
+
 
 _PROMPT = """\
 This SI/BL pair was escalated because one or more fields were left blank \
@@ -78,8 +94,11 @@ def _find_source(email_id: str) -> tuple[dict, Path]:
     raise SystemExit(f"no such email: {email_id}")
 
 
-def _ask_claude(fields: list[str], si_text: str, bl_text: str) -> dict[str, str]:
+def _ask_claude(email_id: str, fields: list[str], si_text: str, bl_text: str) -> dict[str, str]:
     prompt = _PROMPT.format(si_text=si_text, bl_text=bl_text, fields=", ".join(fields))
+    _say(f"-> asking claude (sonnet, headless) to check: {', '.join(fields)}")
+    _say("   (one API round trip, usually a few seconds -- not stuck)")
+    started = time.monotonic()
     result = subprocess.run(
         ["claude", "-p", "--model", "sonnet", "--output-format", "json", "--allowedTools", ""],
         input=prompt,
@@ -87,10 +106,33 @@ def _ask_claude(fields: list[str], si_text: str, bl_text: str) -> dict[str, str]
         text=True,
         timeout=120,
     )
+    elapsed = time.monotonic() - started
     if result.returncode != 0:
+        _log(
+            {
+                "email_id": email_id,
+                "fields": fields,
+                "prompt": prompt,
+                "error": result.stderr.strip(),
+                "elapsed_s": round(elapsed, 2),
+            }
+        )
         raise SystemExit(f"claude -p failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
-    return json.loads(payload["result"].strip())
+    answers = json.loads(payload["result"].strip())
+    _say(f"<- claude responded in {elapsed:.1f}s (cost ${payload.get('total_cost_usd', 0):.4f})")
+    _log(
+        {
+            "email_id": email_id,
+            "fields": fields,
+            "prompt": prompt,
+            "raw_result": payload["result"],
+            "answers": answers,
+            "elapsed_s": round(elapsed, 2),
+            "cost_usd": payload.get("total_cost_usd"),
+        }
+    )
+    return answers
 
 
 def _blank_fields(doc: Document) -> set[str]:
@@ -116,9 +158,11 @@ def main() -> int:
     ap.add_argument("email_id")
     args = ap.parse_args()
 
+    _say(f"== ai_fix: {args.email_id} ==")
     record, att_root = _find_source(args.email_id)
     attachments = record.get("attachments") or []
 
+    _say(f"reading {len(attachments)} attachment(s)...")
     docs: dict[DocumentType, tuple[str, Path]] = {}
     for att in attachments:
         try:
@@ -147,18 +191,19 @@ def main() -> int:
     if not fields:
         print("no blank fields found -- nothing to fix", file=sys.stderr)
         return 1
+    _say(f"blank field(s) to check: {', '.join(fields)}")
 
-    answers = _ask_claude(fields, si_text, bl_text)
+    answers = _ask_claude(args.email_id, fields, si_text, bl_text)
 
     fixed: dict[str, tuple[str, str]] = {}  # field -> (side, value)
     for field in fields:
         value = answers.get(field)
         if not value or value == "CANNOT_FIX":
-            print(f"claude: {field} isn't stated anywhere -- leaving it blank", file=sys.stderr)
+            _say(f"   {field}: not stated anywhere -- leaving it blank")
             continue
         side = "si" if field in _blank_fields(si_doc) else "bl"
         fixed[field] = (side, value)
-        print(f"claude found: {field} = {value!r} (from the other document)")
+        _say(f"   {field}: found {value!r} on the other document")
 
     if not fixed:
         print("nothing was fixable -- not resending", file=sys.stderr)

@@ -54,6 +54,7 @@ func main() {
 		"--state", filepath.Join(here, "state"),
 		"--var", "ctl=" + ctl,
 		"--var", "log=" + filepath.Join(here, "state", "daemon.log"),
+		"--var", "ailog=" + filepath.Join(here, "state", "ai_fix.log"),
 	}
 	if err := syscall.Exec(panvim, args, os.Environ()); err != nil {
 		fmt.Fprintln(os.Stderr, err)
