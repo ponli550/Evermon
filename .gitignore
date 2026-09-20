@@ -36,3 +36,8 @@ web-demo/node_modules/
 web-demo/.wrangler/
 web-demo/public/app.js
 web-demo/public/app.js.map
+
+# docs/media/: raw and rendered demo-video footage. Large binaries, not
+# source, and not something to push -- the video itself gets uploaded
+# wherever the submission form actually wants it, not committed here.
+docs/media/
