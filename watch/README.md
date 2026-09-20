@@ -28,19 +28,21 @@ pretends the organizers provided a live feed.
 ## Running it
 
 `watch-ctl` is a Go CLI (`ctl/main.go`) that owns process lifecycle and the
-state files only -- start/stop/status/board/inbox/log/feed/reset.
-Classification stays in Python: it launches `daemon.py`, which imports
-`dock` directly, so there is exactly one implementation of the pipeline
-logic, not two.
+state files only -- start/stop/status/board/inbox/log/feed/resend/delete/
+reset. Classification stays in Python: it launches `daemon.py`, which
+imports `dock` directly, so there is exactly one implementation of the
+pipeline logic, not two.
 
 ```bash
 cd ctl && go build -o ../watch-ctl . && cd ..   # once; the binary is gitignored
 
-./watch-ctl start          # daemon in the background, PID in state/daemon.pid
-./watch-ctl feed 20        # drip 20 sample emails in, ~1 every 2s
-./watch-ctl board          # dashboard: charts, flagged detail, full history
-./watch-ctl inbox          # the escalation inbox only -- what needs a human
-./watch-ctl log             # tail the daemon log (Ctrl-C to stop watching)
+./watch-ctl start                # daemon in the background, PID in state/daemon.pid
+./watch-ctl feed 20              # drip 20 sample emails in, ~1 every 2s
+./watch-ctl board                # dashboard: charts, flagged detail, full history
+./watch-ctl inbox                # the escalation inbox only -- what needs a human
+./watch-ctl resend email_004     # edit-and-resend as a new synthetic correction
+./watch-ctl delete email_004-fix110055   # remove a synthetic correction (only "-fix" ids)
+./watch-ctl log                  # tail the daemon log (Ctrl-C to stop watching)
 ./watch-ctl stop
 ```
 
@@ -57,14 +59,22 @@ web server. `./watch-popup` opens it. It is project-local: nothing here
 touches `~/.config/panvim` or `~/.local/bin` unless you choose to register a
 popup key for it yourself.
 
-With the cursor on a flagged card's `>> email_NNN` line, `e` opens
-`resend.py` in panvim's sidePan (a real vsplit terminal, engine feature —
-`--row` captures the id off that line). It copies the flagged email's
-attachments, opens the `.txt` ones in `$EDITOR` so a human can fix the
-value that's wrong, then drops the correction into `live_inbox/` as a
-**brand-new synthetic email** (`email_NNN-fixHHMMSS`) for the running
-daemon to triage on its next poll. It never edits the original email,
-`docs/reference/` or `submission.json` — this simulates "someone read the
-escalation and sent a corrected version," nothing more. `.docx`/`.xlsx`/
-`.pdf` attachments are copied as-is; editing those as text would corrupt
-them, so only `.txt` attachments open in the editor.
+With the cursor on any line naming an `email_NNN` id — a flagged card's
+`>> email_NNN` header, or a plain row in the full-history table below —
+`--row` captures that id for two row-scoped keys:
+
+- **`e`** opens `resend.py` in panvim's sidePan (a real vsplit terminal,
+  engine feature). It copies the email's attachments, opens the `.txt`
+  ones in `$EDITOR` so a human can fix the value that's wrong, then drops
+  the correction into `live_inbox/` as a **brand-new synthetic email**
+  (`email_NNN-fixHHMMSS`) for the running daemon to triage on its next
+  poll. It never edits the original email, `docs/reference/` or
+  `submission.json` — this simulates "someone read the escalation and
+  sent a corrected version," nothing more. `.docx`/`.xlsx`/`.pdf`
+  attachments are copied as-is; editing those as text would corrupt them,
+  so only `.txt` attachments open in the editor.
+- **`d`** (`delete_email.py`) removes that email's files and its lines
+  from `events.jsonl`/`needs_review.jsonl`, then re-renders the board
+  immediately — but only when the id contains `-fix`. Pressing it on one
+  of the 520 real dataset emails is refused outright, so the key can't
+  misrepresent what was actually triaged.

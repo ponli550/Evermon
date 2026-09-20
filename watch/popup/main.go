@@ -41,12 +41,16 @@ func main() {
 		"--interval", "3",
 		"--keys", filepath.Join(here, "panel", "keys.tsv"),
 		"--syntax", filepath.Join(here, "panel", "syntax.tsv"),
-		// Captures the email_id off a flagged card's own ">> [NEW] email_NNN"
-		// header line -- %u* eats an optional "NEW" (uppercase only, so it
-		// can't also swallow the lowercase "email_" that follows). The id
-		// itself is [%w%-]+, not just digits, so it also matches resend.py's
-		// own "email_004-fix153000" ids on a re-flagged correction.
-		"--row", `>>%s+%u*%s*(email_[%w%-]+)`,
+		// Deliberately unanchored: matches the id wherever one appears on
+		// the cursor line -- a flagged card's ">> email_NNN" header AND a
+		// plain history-table row, which is the only place a corrected
+		// email still shows once it resolves to OK and drops out of the
+		// flagged section. [%w%-]+ (not just digits) also covers resend.py's
+		// own "email_004-fix153000" ids. False-positive risk is low and
+		// harmless: the only other line containing "email_" is the table's
+		// own header ("email_id"), which resend.py/delete_email.py just
+		// reject as "no such email" if a key is pressed on it.
+		"--row", `(email_[%w%-]+)`,
 		"--state", filepath.Join(here, "state"),
 		"--var", "ctl=" + ctl,
 		"--var", "log=" + filepath.Join(here, "state", "daemon.log"),

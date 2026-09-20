@@ -67,6 +67,8 @@ func main() {
 		runErr = feed(args)
 	case "resend":
 		runErr = resend(args)
+	case "delete":
+		runErr = deleteEmail(args)
 	case "reset":
 		runErr = reset()
 	default:
@@ -80,7 +82,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: watch-ctl {start|stop|restart|status|board|inbox|log|feed [n] [--rate s] [--shuffle]|resend <email_id>|reset}")
+	fmt.Fprintln(os.Stderr, "usage: watch-ctl {start|stop|restart|status|board|inbox|log|feed [n] [--rate s] [--shuffle]|resend <email_id>|delete <email_id>|reset}")
 }
 
 // findWatchDir walks up from start looking for a directory that contains
@@ -414,6 +416,19 @@ func resend(args []string) error {
 	}
 	c := exec.Command(pythonBin(), append([]string{filepath.Join(here, "resend.py")}, args...)...)
 	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
+}
+
+// deleteEmail removes one resend.py-created synthetic email. All the
+// judgement about what's safe to delete lives in delete_email.py (only
+// "-fix" ids), not here -- this is a thin passthrough, same as resend.
+func deleteEmail(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: watch-ctl delete <email_id>")
+	}
+	c := exec.Command(pythonBin(), append([]string{filepath.Join(here, "delete_email.py")}, args...)...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	return c.Run()
