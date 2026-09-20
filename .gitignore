@@ -41,3 +41,8 @@ web-demo/public/app.js.map
 # source, and not something to push -- the video itself gets uploaded
 # wherever the submission form actually wants it, not committed here.
 docs/media/
+
+# Office lock files, dropped by whatever auto-opens docs/*.pptx on save.
+~$*.pptx
+~$*.docx
+~$*.xlsx

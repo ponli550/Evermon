@@ -278,11 +278,58 @@ def build() -> None:
         ],
     )
 
+    # --- Documentation appendix: docs/DOCUMENTATION.md, condensed -----------
+
+    section_slide(prs, 6, "Technical Architecture")
+    bullet_slide(
+        prs,
+        "Three parts, one shared core",
+        [
+            "dock/: classify -> extract -> compare -> escalate. Stdlib Python 3.11, the graded submission.",  # noqa: E501
+            "watch/: Go CLI + terminal dashboard, reuses dock.pipeline.decide() live — not a second implementation.",  # noqa: E501
+            "web-demo/: static Cloudflare Worker, a parity-verified TypeScript port of just the comparison rules.",  # noqa: E501
+        ],
+    )
+
+    section_slide(prs, 7, "Implementation Details")
+    bullet_slide(
+        prs,
+        "What actually makes it accurate",
+        [
+            "Classification reads the body first, not the subject — this corpus deliberately mislabels it.",  # noqa: E501
+            "Field alignment is table-driven: an unrecognised label returns nothing, never a guess.",  # noqa: E501
+            "No OCR, no vision model — scanned PDFs escalate correctly instead of inventing a value.",  # noqa: E501
+        ],
+    )
+
+    section_slide(prs, 8, "Challenges Faced")
+    bullet_slide(
+        prs,
+        "Two scoring incidents, one operational",
+        [
+            '91 "please send the BL" emails were first misclassified GENERAL — the scoreboard caught it.',  # noqa: E501
+            "That fix alone spiked false escalations 20 -> 111, fixed with a narrower rule.",
+            "A stray background daemon raced a live correction during testing — an operational gap.",  # noqa: E501
+        ],
+    )
+
+    section_slide(prs, 9, "Future Roadmap")
+    bullet_slide(
+        prs,
+        "What's next, and what's deliberately not built yet",
+        [
+            "An audited OCR/vision fallback for scanned PDFs, with a stated confidence and escalation on doubt.",  # noqa: E501
+            "Push-based escalation (webhook/notification) instead of a file a person has to poll.",
+            "A single-instance lock for the watcher daemon; exercising the untested Docker/HTTP loader path.",  # noqa: E501
+        ],
+    )
+
     closing_slide(
         prs,
         "Try it yourself",
         [
             "Live prototype: evermon-demo.nazrijz336.workers.dev",
+            "Demo video: youtu.be/TE72CMXwmZ0",
             "Source: github.com/ponli550/Evermon",
             "Thank you.",
         ],
