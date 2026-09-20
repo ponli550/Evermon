@@ -41,6 +41,12 @@ func main() {
 		"--interval", "3",
 		"--keys", filepath.Join(here, "panel", "keys.tsv"),
 		"--syntax", filepath.Join(here, "panel", "syntax.tsv"),
+		// Captures the email_id off a flagged card's own ">> [NEW] email_NNN"
+		// header line -- %u* eats an optional "NEW" (uppercase only, so it
+		// can't also swallow the lowercase "email_" that follows). The id
+		// itself is [%w%-]+, not just digits, so it also matches resend.py's
+		// own "email_004-fix153000" ids on a re-flagged correction.
+		"--row", `>>%s+%u*%s*(email_[%w%-]+)`,
 		"--state", filepath.Join(here, "state"),
 		"--var", "ctl=" + ctl,
 		"--var", "log=" + filepath.Join(here, "state", "daemon.log"),

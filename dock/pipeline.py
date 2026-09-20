@@ -46,8 +46,15 @@ class Outcome:
     compared: dict[str, tuple[str, str]] = field(default_factory=dict)
 
 
-def _needs_review(reason: str, detail: str = "") -> Outcome:
-    return Outcome(status="NEEDS_REVIEW", review_reason=reason, note=explain(reason, detail))
+def _needs_review(
+    reason: str, detail: str = "", compared: dict[str, tuple[str, str]] | None = None
+) -> Outcome:
+    return Outcome(
+        status="NEEDS_REVIEW",
+        review_reason=reason,
+        note=explain(reason, detail),
+        compared=compared or {},
+    )
 
 
 def adjudicate(attachments: list[Attachment]) -> Outcome:
@@ -83,7 +90,11 @@ def adjudicate(attachments: list[Attachment]) -> Outcome:
 
     reason = most_obstructive(reasons)
     if reason is not None:
-        return _needs_review(reason, details.get(reason, ""))
+        # Whatever the SI and BL agree on having a value for is still useful
+        # evidence for a reviewer, even though the reason to escalate is that
+        # something else is blank -- so it rides along, not just the reason.
+        evidence = compare(si, bl).compared if si is not None and bl is not None else {}
+        return _needs_review(reason, details.get(reason, ""), compared=evidence)
     if si is None or bl is None:
         # Reached only if a document is absent without any cause being recorded.
         return _needs_review("missing_attachment", "no SI/BL pair to compare")

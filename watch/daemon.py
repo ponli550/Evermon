@@ -29,6 +29,12 @@ from dock.sources import bundle_inbox  # noqa: E402
 LIVE_INBOX = HERE / "live_inbox"
 STATE = HERE / "state"
 EVENTS = STATE / "events.jsonl"
+#: The escalation inbox: one line per email a human actually needs to look
+#: at (MISMATCH or NEEDS_REVIEW), a strict subset of EVENTS. This is the
+#: file the "ask for help" step writes to -- everything else here is a
+#: dashboard *reading* what already happened; this is the one file meant to
+#: be consumed by something else (a person tailing it, an on-call script).
+NEEDS_REVIEW = STATE / "needs_review.jsonl"
 BOARD = STATE / "board.txt"
 LOG = STATE / "daemon.log"
 PID_FILE = STATE / "daemon.pid"
@@ -67,7 +73,9 @@ def _bar_chart(counts: dict[str, int], order: tuple[str, ...], width: int = 24) 
     lines = []
     for k in order:
         n = counts.get(k, 0)
-        bar = "█" * round(width * n / peak)
+        # max(1, ...) so a real but small count never rounds down to an
+        # invisible bar -- "2 out of 400" should still show *something*.
+        bar = "█" * max(1, round(width * n / peak)) if n else ""
         lines.append(f"  {k.ljust(label_w)}  {bar} {n}")
     return lines
 
@@ -104,10 +112,11 @@ def _side_by_side(left: list[str], right: list[str], gap: str = "   │  ") -> l
     return [f"{lft.ljust(left_w)}{gap}{rgt}".rstrip() for lft, rgt in zip(left, right, strict=True)]
 
 
-def _flagged_card(row: dict) -> list[str]:
+def _flagged_card(row: dict, is_latest: bool = False) -> list[str]:
     """Side-by-side SI|BL detail for one flagged (MISMATCH/NEEDS_REVIEW) email."""
     entry = row["entry"]
-    lines = [f">> {row['email_id']}  {row['outcome']}"]
+    tag = " NEW" if is_latest else ""
+    lines = [f">>{tag} {row['email_id']}  {row['outcome']}"]
     note = row.get("note") or ""
     if note:
         lines.append(f"   why: {note}")
@@ -136,6 +145,11 @@ def render_board() -> None:
     for r in rows:
         cat = r["entry"].get("category", "ERROR")
         category_counts[cat] = category_counts.get(cat, 0) + 1
+        # Every non-comparison category defaults to status "OK" (dock/pipeline.py's
+        # decide() never compared them) -- counting those here would inflate "OK"
+        # with emails that were never a comparison in the first place.
+        if cat != "BL_COMPARISON":
+            continue
         status = r["entry"].get("status")
         if status in _OUTCOMES:
             outcome_counts[status] = outcome_counts.get(status, 0) + 1
@@ -147,19 +161,23 @@ def render_board() -> None:
     left = ["## categories", "", *_bar_chart(category_counts, CATEGORIES)]
     right = ["## comparison outcomes", "", *_proportion_bar(outcome_counts)]
 
+    latest_id = rows[-1]["email_id"] if rows else None
+    shown = flagged[:12]
+
     dashboard: list[str] = [
         "# sdoc live triage -- proactive board",
         f"_watch/daemon.py {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_",
         "",
         *_side_by_side(left, right),
         "",
-        f"## flagged -- {len(flagged)} needing attention"
-        f" (most recent {min(len(flagged), 12)} shown)",
+        f"## flagged -- {len(flagged)} needing attention (most recent {len(shown)} shown)",
     ]
     if not flagged:
         dashboard.append("  none yet")
-    for r in flagged[:12]:
-        dashboard += _flagged_card(r)
+    for r in shown:
+        dashboard += _flagged_card(r, is_latest=r["email_id"] == latest_id)
+    if len(flagged) > len(shown):
+        dashboard.append(f"  ... {len(flagged) - len(shown)} more in the full history below")
     dashboard.append("")
     dashboard.append(f"## full history -- {len(rows)} email(s) seen")
     dashboard.append("")
@@ -173,7 +191,7 @@ def render_board() -> None:
         [
             r["email_id"],
             datetime.fromisoformat(r["at"]).astimezone().strftime("%Y-%m-%d %H:%M:%S"),
-            r["outcome"],
+            f"NEW  {r['outcome']}" if r["email_id"] == latest_id else r["outcome"],
         ]
         for r in reversed(rows)
     ]
@@ -246,6 +264,9 @@ def process_new(inbox, done: set[str]) -> int:
         }
         with EVENTS.open("a") as out:
             out.write(json.dumps(event) + "\n")
+        if entry["status"] in ("MISMATCH", "NEEDS_REVIEW"):
+            with NEEDS_REVIEW.open("a") as out:
+                out.write(json.dumps(event) + "\n")
         log(f"{email_id}  {event['outcome']}")
         done.add(email_id)
         n += 1

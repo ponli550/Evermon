@@ -8,6 +8,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -58,10 +59,14 @@ func main() {
 		runErr = status()
 	case "board":
 		runErr = board()
+	case "inbox":
+		runErr = inbox()
 	case "log":
 		runErr = tailLog()
 	case "feed":
 		runErr = feed(args)
+	case "resend":
+		runErr = resend(args)
 	case "reset":
 		runErr = reset()
 	default:
@@ -75,7 +80,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: watch-ctl {start|stop|restart|status|board|log|feed [n] [--rate s] [--shuffle]|reset}")
+	fmt.Fprintln(os.Stderr, "usage: watch-ctl {start|stop|restart|status|board|inbox|log|feed [n] [--rate s] [--shuffle]|resend <email_id>|reset}")
 }
 
 // findWatchDir walks up from start looking for a directory that contains
@@ -118,6 +123,7 @@ func boardFile() string { return filepath.Join(stateDir(), "board.txt") }
 func eventsFile() string {
 	return filepath.Join(stateDir(), "events.jsonl")
 }
+func needsReviewFile() string { return filepath.Join(stateDir(), "needs_review.jsonl") }
 
 func pythonBin() string {
 	if p := os.Getenv("PYTHON"); p != "" {
@@ -283,6 +289,65 @@ func board() error {
 	return nil
 }
 
+// escalation mirrors the fields of one line of needs_review.jsonl that
+// `inbox` actually renders -- daemon.py owns the real shape (see its
+// process_new()); this is a read-only, partial view of it.
+type escalation struct {
+	EmailID string `json:"email_id"`
+	At      string `json:"at"`
+	Outcome string `json:"outcome"`
+	Note    string `json:"note"`
+	Entry   struct {
+		Category     string `json:"category"`
+		Status       string `json:"status"`
+		ReviewReason string `json:"review_reason"`
+	} `json:"entry"`
+}
+
+// inbox prints the escalation inbox -- every email a human actually needs to
+// look at, one per line, oldest first, so it reads top-to-bottom like a real
+// inbox rather than the board's newest-first triage view. This is the file
+// meant to be tailed or scripted against (needs_review.jsonl), not board.txt.
+func inbox() error {
+	f, err := os.Open(needsReviewFile())
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Println("# no escalations yet")
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	sc := bufio.NewScanner(f)
+	buf := make([]byte, 0, 64*1024)
+	sc.Buffer(buf, 1024*1024)
+	n := 0
+	for sc.Scan() {
+		line := sc.Text()
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		var e escalation
+		if err := json.Unmarshal([]byte(line), &e); err != nil {
+			continue
+		}
+		n++
+		at := e.At
+		if t, err := time.Parse(time.RFC3339, e.At); err == nil {
+			at = t.Local().Format("2006-01-02 15:04:05")
+		}
+		fmt.Printf("%-10s  %s  %s\n", e.EmailID, at, e.Outcome)
+		if e.Note != "" {
+			fmt.Printf("            why: %s\n", e.Note)
+		}
+	}
+	if n == 0 {
+		fmt.Println("# no escalations yet")
+	}
+	return sc.Err()
+}
+
 // tailLog follows daemon.log the way `tail -f` does: print what is there,
 // then poll for growth. No external dependency, no cgo.
 func tailLog() error {
@@ -334,6 +399,21 @@ func feed(args []string) error {
 	feeder := []string{filepath.Join(here, "feeder.py")}
 	feeder = append(feeder, args...)
 	c := exec.Command(pythonBin(), feeder...)
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
+}
+
+// resend runs resend.py interactively (it opens $EDITOR itself) so it needs
+// stdin/stdout/stderr wired straight through, same as feed but foreground
+// and attached -- this is meant to run inside panvim's sidePan, a real
+// terminal, not a detached process.
+func resend(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: watch-ctl resend <email_id>")
+	}
+	c := exec.Command(pythonBin(), append([]string{filepath.Join(here, "resend.py")}, args...)...)
+	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	return c.Run()
