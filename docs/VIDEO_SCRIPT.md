@@ -45,27 +45,24 @@ staged, nothing that only works on camera.
 `dock/review.py`'s precedence tuple while naming them.
 
 **Say:**
-> "The pipeline is Python 3.11, standard library only — no database, no
-> network calls, no LLM in the decision path. Two design decisions drive
-> everything else.
->
-> First: alignment by meaning, not by header text, and it's table-driven,
-> not fuzzy. Every label we mapped came from actually reading the corpus —
-> an unrecognised label returns nothing rather than a guess, because a
+> "The core pipeline is Python 3.11, standard library only — no database,
+> no network calls, no LLM in the classify-compare-escalate decision.
+> That's deliberate: alignment by meaning is table-driven, not fuzzy, and
+> escalation is four precedence-ordered reasons, not a confidence score.
+> An unrecognised label returns nothing rather than a guess, because a
 > wrong match here is worse than a missed one.
 >
-> Second: escalate on structure, not on confidence. There's no score to
-> threshold — just four precedence-ordered reasons for exactly when the
-> pipeline can't decide, ordered by how much each one hides.
+> AI comes in exactly one place, on the cloud: when an email escalates
+> because a field's blank, one headless Claude call checks whether the
+> other document already states it, and only ever copies a value that's
+> actually written down — never invents one.
 >
-> For the live demo, we built a small Go CLI and a terminal dashboard on
-> top — same pipeline, imported as a library, not reimplemented. And for
-> the hosted web version, we ported only the comparison rules to
-> TypeScript, and verified them line-for-line against the Python original
-> before shipping — a port that isn't checked is just a second
-> implementation waiting to drift."
+> The live demo runs on a small Go CLI and terminal dashboard, same
+> pipeline imported as a library. The hosted version is a Cloudflare
+> Worker with the comparison rules ported to TypeScript, verified
+> line-for-line against the Python original before shipping."
 
-## 4. Live Demo — 2:05–4:15 (2:10)
+## 4. Live Demo — 2:05–4:30 (2:25)
 
 **Commands to actually run on camera, in order:**
 
@@ -85,7 +82,10 @@ cd watch && ./watch-ctl start && ./watch-popup
 # 5. Edit-and-resend: cursor on the flagged row, press e, fix the port in $EDITOR,
 #    watch it resolve to "No mismatch detected" live
 
-# 6. Cut to the browser: https://evermon-demo.nazrijz336.workers.dev
+# 6. AI fix: cursor on a NEEDS_REVIEW (missing_value) row, press a --
+#    claude checks the other document and resends a corrected copy live
+
+# 7. Cut to the browser: https://evermon-demo.nazrijz336.workers.dev
 ```
 
 **Say (over the batch run):**
@@ -108,24 +108,27 @@ cd watch && ./watch-ctl start && ./watch-popup
 > "And this is what happens after someone fixes the flagged document — we
 > resend it as a new email, and it re-triages clean, live."
 
+**Say (over the AI fix):**
+> "Same idea, but automatic: Claude reads both documents, finds the value
+> stated on the other side, and only resends if it can actually prove the
+> fix — otherwise it leaves it escalated, exactly as it should."
+
 **On screen:** cut to https://evermon-demo.nazrijz336.workers.dev in a browser.
 
 **Say (over the web demo, ~10s):**
 > "We also shipped this as a hosted prototype, so anyone can try the same
 > comparison rules themselves in a browser, no clone required."
 
-## 5. Impact — 4:15–4:50 (35s)
+## 5. Impact — 4:30–4:50 (20s)
 
 **On screen:** `uv run pytest -q` passing, or the scoreboard numbers from
 `README.md`.
 
 **Say:**
-> "129 tests, deterministic, no network or LLM anywhere in the graded
-> path. Against the organisers' own grader — which we don't ship, since it
-> comes with the answer key — this scores 1.0000: perfect classification,
-> perfect comparison, and 20 out of 20 on the reliability axis, the one
-> that actually measures whether 'needs review' means something or is
-> just a shrug."
+> "129 deterministic tests. Against the organisers' own grader — which we
+> don't ship, since it comes with the answer key — this scores 1.0000:
+> perfect classification, perfect comparison, 20 out of 20 correctly
+> escalated."
 
 ## Close — 4:50–5:00 (10s)
 
@@ -141,11 +144,12 @@ cd watch && ./watch-ctl start && ./watch-popup
 | Intro | 0:20 | 0:20 |
 | Problem | 0:45 | 1:05 |
 | Tech Stack & Philosophy | 1:00 | 2:05 |
-| Live Demo | 2:10 | 4:15 |
-| Impact | 0:35 | 4:50 |
+| Live Demo (now 7 steps, incl. AI fix + web demo) | 2:25 | 4:30 |
+| Impact | 0:20 | 4:50 |
 | Close | 0:10 | 5:00 |
 
-This hits the cap exactly on paper — in practice, budget a few seconds of
+Still hits the cap exactly on paper, after trimming Impact's narration to
+make room for the new AI-fix beat. In practice, budget a few seconds of
 slack (natural pauses, a slower reader) by tightening the Live Demo
 commentary first; it has the most room since a lot of that time is real
 commands executing, not speech.
