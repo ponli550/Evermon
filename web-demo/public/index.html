@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Evermon — live demo</title>
+<meta
+  name="description"
+  content="Interactive demo of Evermon's shipping-document triage pipeline: classify, compare SI vs draft BL by meaning, escalate with a reason." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Evermon</h1>
+      <p>Classifies shipping emails, compares SI against draft BL by meaning, escalates to a human with a stated reason.</p>
+    </div>
+    <span class="badge-not-graded">demo layer — not the graded submission</span>
+  </header>
+
+  <section id="feed-section">
+    <h2>Watch it triage a real email</h2>
+    <p class="hint">
+      Every email here is real, from the organisers' 520-email dataset, and every result
+      was computed by the actual Python pipeline (<code>dock/pipeline.py</code>) at build
+      time — nothing on this page is invented for the demo.
+    </p>
+    <div class="stage">
+      <div class="track">
+        <span class="plane" id="plane">✈️</span>
+      </div>
+      <div class="bin" id="bin">📥</div>
+    </div>
+    <p class="stage-status" id="stageStatus">press "feed a random email" to start</p>
+
+    <div class="controls">
+      <button class="btn" id="feedRandom">✈ feed a random email</button>
+      <select id="categoryFilter">
+        <option value="">any category</option>
+        <option value="BL_COMPARISON">BL_COMPARISON</option>
+        <option value="SI_REQUEST">SI_REQUEST</option>
+        <option value="INVOICE_QUERY">INVOICE_QUERY</option>
+        <option value="GENERAL">GENERAL</option>
+        <option value="SPAM">SPAM</option>
+      </select>
+      <input type="search" id="search" placeholder="search: email_004, mombasa, mismatch…" />
+    </div>
+
+    <div class="email-list" id="emailList" hidden></div>
+
+    <div class="card" id="card" hidden></div>
+  </section>
+
+  <section id="dashboard-section">
+    <h2>All 520 emails, at a glance</h2>
+    <div class="chart-row">
+      <div>
+        <h3 style="font-size:.85rem;color:var(--text-muted);margin:0 0 10px;">categories</h3>
+        <div id="categoryChart"></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;color:var(--text-muted);margin:0 0 10px;">comparison outcomes</h3>
+        <div id="outcomeChart"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="playground-section">
+    <h2>Test the comparison logic yourself</h2>
+    <p class="hint">
+      This runs the real field-comparison rules — locode stripping, weight
+      normalisation, container parsing, blank detection — ported to
+      TypeScript from <code>dock/fields.py</code>, verified line-for-line
+      against all 109 real comparable emails before shipping (see
+      <code>web-demo/scripts/verify_parity.ts</code>). Edit any value and
+      press compare.
+    </p>
+    <div class="playground-grid">
+      <div>
+        <h3 style="font-size:.85rem;">Shipping Instruction (SI)</h3>
+        <div id="siFields"></div>
+      </div>
+      <div>
+        <h3 style="font-size:.85rem;">Draft Bill of Lading (BL)</h3>
+        <div id="blFields"></div>
+      </div>
+    </div>
+    <button class="btn" id="runCompare">compare</button>
+    <div class="playground-result" id="playgroundResult"></div>
+  </section>
+
+  <footer class="foot">
+    Evermon — built for Averis × Monash Hackathon 2026 by team DevSelf.
+    Source: <a href="https://github.com/ponli550/Evermon" target="_blank" rel="noopener">github.com/ponli550/Evermon</a>.
+    This page is a demo layer (<code>web-demo/</code>); the graded pipeline is <code>dock/</code>, a stdlib CLI with no network calls and no LLM.
+  </footer>
+
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

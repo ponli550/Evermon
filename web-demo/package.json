@@ -1,0 +1,23 @@
+{
+  "name": "evermon-web-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "export-data": "python3 scripts/export_dataset.py",
+    "verify-parity": "node scripts/verify_parity.ts",
+    "build": "esbuild src/app.ts --bundle --outfile=public/app.js --format=esm --target=es2020",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.24.2": true,
+    "esbuild@0.28.1": true,
+    "workerd@1.20260918.1": true,
+    "fsevents@2.3.3": true
+  }
+}

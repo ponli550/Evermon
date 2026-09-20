@@ -192,11 +192,22 @@ dock/       the pipeline (stdlib only)          <- this is the submission
 tests/      129 tests; no network, no LLM, deterministic
 docs/       the brief, the distilled rules, and the organisers' bundle verbatim
 watch/      a live-triage demo built on dock, NOT part of the graded pipeline
+web-demo/   a hosted Cloudflare demo, NOT part of the graded pipeline either
 ```
 
 `watch/` exists because a batch CLI is hard to show to a room. It watches a
-folder and triages emails as they land, through `dock.pipeline.process()` —
-the same function `dock/cli.py` calls, imported as a library, so there is one
-implementation and not two. Nothing in `dock/` imports it, and removing the
-directory would not change `submission.json` by a byte. Its own README says
-what is real about it and what is staged for a demo.
+folder and triages emails as they land, through `dock.pipeline.decide()` —
+the same decision `dock/cli.py`'s `process()` wraps, imported as a library,
+so there is one implementation and not two. Nothing in `dock/` imports it,
+and removing the directory would not change `submission.json` by a byte.
+Its own README says what is real about it and what is staged for a demo.
+
+`web-demo/` exists because the submission form asks for a live URL, and a
+stdlib CLI has nothing to host. It's a static Cloudflare Worker (no
+server-side code) built from a one-time export of the real 520-email
+dataset (`web-demo/scripts/export_dataset.py`, which calls
+`dock.pipeline.decide()` directly) plus a hand-ported, parity-verified
+copy of `dock/fields.py`'s value-comparison rules running client-side for
+an interactive "test it yourself" panel. Its own README says exactly which
+part is real data and which part is logic actually running in the
+browser.

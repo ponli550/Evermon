@@ -27,3 +27,12 @@ watch/live_inbox/attachments/*
 watch/watch-ctl
 watch/watch-popup
 watch/state/view.txt
+
+# web-demo/: the hosted Cloudflare demo (not the graded pipeline either --
+# see web-demo's own README). node_modules and wrangler's local dev state
+# are not source; public/app.js is esbuild output, rebuilt by `npm run
+# build`/`npm run deploy` from src/ -- not source either.
+web-demo/node_modules/
+web-demo/.wrangler/
+web-demo/public/app.js
+web-demo/public/app.js.map
