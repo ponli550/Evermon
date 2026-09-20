@@ -38,20 +38,34 @@ staged, nothing that only works on camera.
 > ends up on a negotiable shipping document. That's the real cost this
 > solves."
 
-## 3. Tech Stack — 1:05–1:40 (35s)
+## 3. Tech Stack & Philosophy — 1:05–2:05 (60s)
 
 **On screen:** `dock/` directory listing, or the module table from
-`docs/DOCUMENTATION.md`.
+`docs/DOCUMENTATION.md`; cut to `dock/fields.py`'s `FIELD_ALIASES` table and
+`dock/review.py`'s precedence tuple while naming them.
 
 **Say:**
 > "The pipeline is Python 3.11, standard library only — no database, no
-> network calls, no LLM in the decision path. Classification, field
-> alignment, and comparison are rule-based and auditable, not a prompt.
+> network calls, no LLM in the decision path. Two design decisions drive
+> everything else.
+>
+> First: alignment by meaning, not by header text, and it's table-driven,
+> not fuzzy. Every label we mapped came from actually reading the corpus —
+> an unrecognised label returns nothing rather than a guess, because a
+> wrong match here is worse than a missed one.
+>
+> Second: escalate on structure, not on confidence. There's no score to
+> threshold — just four precedence-ordered reasons for exactly when the
+> pipeline can't decide, ordered by how much each one hides.
+>
 > For the live demo, we built a small Go CLI and a terminal dashboard on
-> top — same pipeline, imported as a library, watching an inbox in real
-> time instead of running once as a batch."
+> top — same pipeline, imported as a library, not reimplemented. And for
+> the hosted web version, we ported only the comparison rules to
+> TypeScript, and verified them line-for-line against the Python original
+> before shipping — a port that isn't checked is just a second
+> implementation waiting to drift."
 
-## 4. Live Demo — 1:40–4:10 (2:30)
+## 4. Live Demo — 2:05–4:15 (2:10)
 
 **Commands to actually run on camera, in order:**
 
@@ -93,7 +107,7 @@ cd watch && ./watch-ctl start && ./watch-popup
 > the document — we resend it as a new email, and it re-triages clean, in
 > real time."
 
-## 5. Impact — 4:10–4:50 (40s)
+## 5. Impact — 4:15–4:50 (35s)
 
 **On screen:** `uv run pytest -q` passing, or the scoreboard numbers from
 `README.md`.
@@ -119,10 +133,12 @@ cd watch && ./watch-ctl start && ./watch-popup
 |---|---|---|
 | Intro | 0:20 | 0:20 |
 | Problem | 0:45 | 1:05 |
-| Tech Stack | 0:35 | 1:40 |
-| Live Demo | 2:30 | 4:10 |
-| Impact | 0:40 | 4:50 |
+| Tech Stack & Philosophy | 1:00 | 2:05 |
+| Live Demo | 2:10 | 4:15 |
+| Impact | 0:35 | 4:50 |
 | Close | 0:10 | 5:00 |
 
-Total narration is ~420 words outside the demo section, comfortably inside
-a 5-minute cap even accounting for pauses during the live commands.
+This hits the cap exactly on paper — in practice, budget a few seconds of
+slack (natural pauses, a slower reader) by tightening the Live Demo
+commentary first; it has the most room since a lot of that time is real
+commands executing, not speech.
