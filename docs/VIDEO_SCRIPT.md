@@ -84,6 +84,8 @@ cd watch && ./watch-ctl start && ./watch-popup
 
 # 5. Edit-and-resend: cursor on the flagged row, press e, fix the port in $EDITOR,
 #    watch it resolve to "No mismatch detected" live
+
+# 6. Cut to the browser: https://evermon-demo.nazrijz336.workers.dev
 ```
 
 **Say (over the batch run):**
@@ -103,9 +105,14 @@ cd watch && ./watch-ctl start && ./watch-popup
 > side, not just a flag."
 
 **Say (over edit-and-resend):**
-> "And this is what happens after someone reads the escalation and fixes
-> the document — we resend it as a new email, and it re-triages clean, in
-> real time."
+> "And this is what happens after someone fixes the flagged document — we
+> resend it as a new email, and it re-triages clean, live."
+
+**On screen:** cut to https://evermon-demo.nazrijz336.workers.dev in a browser.
+
+**Say (over the web demo, ~10s):**
+> "We also shipped this as a hosted prototype, so anyone can try the same
+> comparison rules themselves in a browser, no clone required."
 
 ## 5. Impact — 4:15–4:50 (35s)
 
