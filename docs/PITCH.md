@@ -1,5 +1,7 @@
+# Evermon
+
 ## one-liner
-Dock reads a shipping-documentation inbox, matches SI against draft BL by meaning (not header text), flags the seven fields that actually matter, and escalates to a human with a stated reason when it can't decide.
+Evermon reads a shipping-documentation inbox, matches SI against draft BL by meaning (not header text), flags the seven fields that actually matter, and escalates to a human with a stated reason when it can't decide.
 
 ## problem
 Clerks manually cross-check SI vs BL — shipper, consignee, notify party, load/discharge port, container count, gross weight — across documents that never use the same labels ("Port of Loading" vs "Load Port", units hidden in a mixed-language gloss). Slow, and a missed mismatch puts the wrong consignee on a negotiable document. This is real and it's the honest problem — don't inflate it further.

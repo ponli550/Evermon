@@ -1,6 +1,6 @@
 {
-  "name": "AverisMonash2026",
-  "one_liner": "Dock - classifies inbound shipping email, aligns SI and BL fields by meaning, flags discrepancies, and escalates to human review instead of guessing.",
+  "name": "Evermon",
+  "one_liner": "Evermon - classifies inbound shipping email, aligns SI and BL fields by meaning, flags discrepancies, and escalates to human review instead of guessing.",
   "problem": "Shipping ops teams manually read inbound emails and compare SI/BL documents field-by-field to catch discrepancies before cargo moves; this is slow, error-prone, and doesn't scale with volume or messy real-world document formats.",
   "market": "Freight forwarders, shipping lines, and logistics back-offices handling high-volume SI/BL document verification.",
   "track": "agent",
