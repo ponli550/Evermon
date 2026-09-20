@@ -279,6 +279,10 @@ def main() -> int:
     STATE.mkdir(exist_ok=True)
     for d in ("inbox", "attachments"):
         (LIVE_INBOX / d).mkdir(parents=True, exist_ok=True)
+    # panvim's log-live refuses to open a file that doesn't exist yet (a
+    # silent warning, easy to miss) -- ai_fix.py only creates its own log on
+    # first use, so the `l` panel key would do nothing until then otherwise.
+    (STATE / "ai_fix.log").touch(exist_ok=True)
     PID_FILE.write_text(str(__import__("os").getpid()))
     running = True
 
