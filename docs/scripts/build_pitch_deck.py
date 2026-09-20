@@ -278,9 +278,20 @@ def build() -> None:
         ],
     )
 
+    section_slide(prs, 6, "AI Integration", note="Cloud-deployed: Claude, called headlessly")
+    bullet_slide(
+        prs,
+        "Proves it, never guesses it",
+        [
+            "One headless claude -p call per escalation — copies a blank field only if stated on the other side.",  # noqa: E501
+            "Refuses outright, zero cost, when there's nothing to correct from.",
+            "Partial fixes are correct: one field gets fixed, the other still escalates.",
+        ],
+    )
+
     # --- Documentation appendix: docs/DOCUMENTATION.md, condensed -----------
 
-    section_slide(prs, 6, "Technical Architecture")
+    section_slide(prs, 7, "Technical Architecture")
     bullet_slide(
         prs,
         "Three parts, one shared core",
@@ -291,7 +302,7 @@ def build() -> None:
         ],
     )
 
-    section_slide(prs, 7, "Implementation Details")
+    section_slide(prs, 8, "Implementation Details")
     bullet_slide(
         prs,
         "What actually makes it accurate",
@@ -302,7 +313,7 @@ def build() -> None:
         ],
     )
 
-    section_slide(prs, 8, "Challenges Faced")
+    section_slide(prs, 9, "Challenges Faced")
     bullet_slide(
         prs,
         "Two scoring incidents, one operational",
@@ -313,7 +324,7 @@ def build() -> None:
         ],
     )
 
-    section_slide(prs, 9, "Future Roadmap")
+    section_slide(prs, 10, "Future Roadmap")
     bullet_slide(
         prs,
         "What's next, and what's deliberately not built yet",

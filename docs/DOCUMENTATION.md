@@ -48,7 +48,7 @@ live_inbox/ (files) ──poll(1s)──► daemon.py ──► dock.pipeline.de
   wraps, reused as a library. One implementation, not two.
 - `watch-ctl` (Go, `ctl/main.go`) owns process lifecycle and the state
   files: `start | stop | restart | status | board | inbox | feed | resend |
-  delete | log | reset`.
+  aifix | delete | log | reset`.
 - `watch-popup` (Go, `popup/main.go`) opens the dashboard as a `panvim`
   terminal panel — a live-reloading text view, not a web UI.
 - `state/events.jsonl` — every decision, ever. `state/needs_review.jsonl` —
@@ -59,6 +59,11 @@ live_inbox/ (files) ──poll(1s)──► daemon.py ──► dock.pipeline.de
   brand-new synthetic email (`email_NNN-fixHHMMSS`) for the daemon to
   retriage live. Delete is restricted to `-fix` ids only — it cannot touch
   real dataset history.
+- `ai_fix.py` — the one place this repo calls an LLM. A single headless
+  `claude -p` call per escalation, scoped to `missing_value` only: it
+  reads the SI and the BL together and copies a blank field's value over
+  *only* when the counterpart document already states it — never infers
+  or invents one. Same synthetic-email mechanism as `resend.py`.
 
 ## Implementation Details
 
@@ -97,6 +102,17 @@ images or corrupt; those correctly resolve to `NEEDS_REVIEW / unreadable`.
 ordered by how much each one hides (an unreadable file could contain
 anything; a blank field, at least you can see what's missing). It is never
 a catch-all: every comparison the pipeline can decide, it decides.
+
+**AI is scoped to what it can prove, never to what it can guess.**
+`watch/ai_fix.py` reads both documents and cross-checks each blank field
+against the other side — the same completion a human reviewer would make.
+It refuses outright, with zero API calls, on `wrong_doc_type`/
+`missing_attachment`/`unreadable` (there's no text to correct from), and
+per-field on `missing_value` when the value isn't stated anywhere in what
+was actually sent. A partial fix is normal: `email_517` has two blank
+fields, one recoverable from the other document and one genuinely blank on
+both sides — the AI fixes the first and correctly leaves the email
+`NEEDS_REVIEW` for the second, rather than forcing a false resolution.
 
 **`dock.pipeline.decide()` vs `process()`.** `decide()` returns the full
 internal `Outcome` — including `compared` (the per-field SI/BL values that

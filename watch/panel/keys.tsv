@@ -2,6 +2,7 @@
 # key<TAB>label<TAB>action<TAB>argument. {ctl} stands in for watch-ctl below.
 [row]
 e	edit & resend flagged email -- opens attachments in $EDITOR, sends a NEW synthetic email (never touches the original or real data)	term-side	{ctl} resend {row}
+a	AI fix -- claude cross-checks blank fields against the other document, resends only what it can prove, never invents a value	term-hold	{ctl} aifix {row}
 d	delete this row IF it's a resend.py correction (refuses on real dataset emails)	term-hold	{ctl} delete {row}
 
 [global]

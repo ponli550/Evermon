@@ -25,6 +25,10 @@ watcher has something to react to. It never touches `docs/reference/` or
 `submission.json`, and it is clearly a separate script so nothing here
 pretends the organizers provided a live feed.
 
+The one place this repo calls an LLM at all is `ai_fix.py` (see the `a`
+key below) — the daemon, the classify/compare/escalate decision, and the
+batch pipeline in `dock/` never do.
+
 ## Running it
 
 `watch-ctl` is a Go CLI (`ctl/main.go`) that owns process lifecycle and the
@@ -41,6 +45,7 @@ cd ctl && go build -o ../watch-ctl . && cd ..   # once; the binary is gitignored
 ./watch-ctl board                # dashboard: charts, flagged detail, full history
 ./watch-ctl inbox                # the escalation inbox only -- what needs a human
 ./watch-ctl resend email_004     # edit-and-resend as a new synthetic correction
+./watch-ctl aifix email_517      # claude cross-checks blank fields against the other document
 ./watch-ctl delete email_004-fix110055   # remove a synthetic correction (only "-fix" ids)
 ./watch-ctl log                  # tail the daemon log (Ctrl-C to stop watching)
 ./watch-ctl stop
@@ -73,6 +78,17 @@ With the cursor on any line naming an `email_NNN` id — a flagged card's
   sent a corrected version," nothing more. `.docx`/`.xlsx`/`.pdf`
   attachments are copied as-is; editing those as text would corrupt them,
   so only `.txt` attachments open in the editor.
+- **`a`** (`ai_fix.py`) is the AI path: a single, non-interactive
+  `claude -p` call reads both the SI and the BL and checks whether each
+  blank field is stated on the *other* document. It only ever copies a
+  value that's already written down somewhere in what was actually sent —
+  never infers or invents one. Scoped to `missing_value` escalations only;
+  `wrong_doc_type`/`missing_attachment`/`unreadable` have no text to
+  correct from and it refuses those outright, with no API call made. A
+  partial fix is normal and correct: if only one of two blank fields is
+  recoverable, the resend still comes back `NEEDS_REVIEW` for the other —
+  it does not force a false resolution. Same synthetic-email mechanism as
+  `e`/`resend.py`; `d`/`delete_email.py` cleans these up too.
 - **`d`** (`delete_email.py`) removes that email's files and its lines
   from `events.jsonl`/`needs_review.jsonl`, then re-renders the board
   immediately — but only when the id contains `-fix`. Pressing it on one

@@ -67,6 +67,8 @@ func main() {
 		runErr = feed(args)
 	case "resend":
 		runErr = resend(args)
+	case "aifix":
+		runErr = aiFix(args)
 	case "delete":
 		runErr = deleteEmail(args)
 	case "reset":
@@ -82,7 +84,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: watch-ctl {start|stop|restart|status|board|inbox|log|feed [n] [--rate s] [--shuffle]|resend <email_id>|delete <email_id>|reset}")
+	fmt.Fprintln(os.Stderr, "usage: watch-ctl {start|stop|restart|status|board|inbox|log|feed [n] [--rate s] [--shuffle]|resend <email_id>|aifix <email_id>|delete <email_id>|reset}")
 }
 
 // findWatchDir walks up from start looking for a directory that contains
@@ -416,6 +418,19 @@ func resend(args []string) error {
 	}
 	c := exec.Command(pythonBin(), append([]string{filepath.Join(here, "resend.py")}, args...)...)
 	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
+}
+
+// aiFix runs ai_fix.py: a headless `claude -p` call, non-interactive, so
+// it needs no stdin -- but it does need real time (an API round trip),
+// which is why it's run through term-hold in the panel, not term.
+func aiFix(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: watch-ctl aifix <email_id>")
+	}
+	c := exec.Command(pythonBin(), append([]string{filepath.Join(here, "ai_fix.py")}, args...)...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	return c.Run()
