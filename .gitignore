@@ -46,3 +46,11 @@ docs/media/
 ~$*.pptx
 ~$*.docx
 ~$*.xlsx
+
+# docs/reference/: research material fetched while writing docs/RULES.md
+# and docs/BRIEF.md (raw HTML/text scrapes, a Drive folder listing) --
+# working notes, not the graded submission. docs/reference/sdoc-hackathon-bundle/
+# (the organisers' dataset) is untouched by this and stays tracked.
+docs/reference/*.html
+docs/reference/*.txt
+docs/reference/readthis.md
